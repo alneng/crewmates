@@ -179,8 +179,8 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
           const el = document.createElement("div");
           el.className = "collaborator-cursor";
           el.innerHTML = `
-            <div class="cursor"></div>
             <div class="label">${collaborator.userId}</div>
+            <div class="cursor"></div>
           `;
 
           marker = new mapboxgl.Marker({
