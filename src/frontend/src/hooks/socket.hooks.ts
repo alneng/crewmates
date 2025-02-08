@@ -1,4 +1,3 @@
-// src/hooks/socket.hooks.ts
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { API_URL, useSession } from "@/lib/auth-client";
@@ -13,7 +12,7 @@ export const useSocket = (sessionId: string | null) => {
     // Initialize socket if not already connected
     if (!socket.current) {
       socket.current = io(API_URL, {
-        auth: { userId: data.user.id },
+        auth: { userId: data.user.id, name: data.user.name },
         withCredentials: true,
         reconnection: true,
         reconnectionDelay: 1000,

@@ -3,6 +3,7 @@ import { Socket } from "socket.io-client";
 
 interface Collaborator {
   userId: string;
+  name: string;
   cursor?: { latitude: number; longitude: number };
 }
 
@@ -14,15 +15,21 @@ export const useCollaborators = (socket: Socket | null) => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleUserJoined = ({ userId }: { userId: string }) => {
+    const handleUserJoined = ({
+      userId,
+      name,
+    }: {
+      userId: string;
+      name: string;
+    }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
-        next.set(userId, { userId });
+        next.set(userId, { userId, name });
         return next;
       });
     };
 
-    const handleUserLeft = ({ userId }: { userId: string }) => {
+    const handleUserLeft = ({ userId }: { userId: string; name: string }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
         next.delete(userId);
@@ -32,10 +39,12 @@ export const useCollaborators = (socket: Socket | null) => {
 
     const handleCursorUpdate = ({
       userId,
+      name,
       latitude,
       longitude,
     }: {
       userId: string;
+      name: string;
       latitude: number;
       longitude: number;
     }) => {
@@ -45,7 +54,7 @@ export const useCollaborators = (socket: Socket | null) => {
         if (user) {
           next.set(userId, { ...user, cursor: { latitude, longitude } });
         } else {
-          next.set(userId, { userId, cursor: { latitude, longitude } });
+          next.set(userId, { userId, name, cursor: { latitude, longitude } });
         }
         return next;
       });

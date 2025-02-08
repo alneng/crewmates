@@ -179,7 +179,7 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
           const el = document.createElement("div");
           el.className = "collaborator-cursor";
           el.innerHTML = `
-            <div class="label">${collaborator.userId}</div>
+            <div class="label">${collaborator.name}</div>
             <div class="cursor"></div>
           `;
 

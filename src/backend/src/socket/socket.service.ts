@@ -30,7 +30,8 @@ export class SocketService {
 
   private async handleConnection(socket: Socket) {
     const userId = socket.handshake.auth.userId;
-    if (!userId) {
+    const name = socket.handshake.auth.name;
+    if (!userId || !name) {
       socket.disconnect();
       return;
     }
@@ -66,8 +67,7 @@ export class SocketService {
 
       await socket.join(sessionId);
 
-      // Notify others in the room
-      socket.to(sessionId).emit("user-joined", { userId });
+      socket.to(sessionId).emit("user-joined", { userId, name });
     });
 
     // Handle cursor updates
@@ -75,9 +75,9 @@ export class SocketService {
       const sessionId = Array.from(socket.rooms)[1]; // First room is socket's own room
       if (!sessionId) return;
 
-      // Emit to everyone in the room except the sender
       socket.to(sessionId).emit("cursor-update", {
         userId,
+        name,
         latitude: data.latitude,
         longitude: data.longitude,
       });
@@ -94,14 +94,13 @@ export class SocketService {
         data: { order: data.order },
       });
 
-      // Broadcast to others
       socket.to(sessionId).emit("waypoint-updated", data);
     });
 
     socket.on("disconnect", () => {
       const sessionId = Array.from(socket.rooms)[1];
       if (sessionId) {
-        socket.to(sessionId).emit("user-left", { userId });
+        socket.to(sessionId).emit("user-left", { userId, name });
       }
     });
   }
