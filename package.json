@@ -1,0 +1,22 @@
+{
+  "name": "crewmates",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"Express,React\" -c \"bgBlue.bold,bgMagenta.bold\" \"yarn backend\" \"yarn frontend\"",
+    "backend": "yarn workspace backend dev",
+    "frontend": "yarn workspace frontend dev",
+    "prisma:reset": "yarn workspace backend prisma:reset",
+    "prisma:migrate": "yarn workspace backend prisma:migrate",
+    "prisma:migrate:prod": "yarn workspace backend prisma:migrate:prod",
+    "prisma:generate": "yarn workspace backend prisma:generate",
+    "prisma:studio": "yarn workspace backend prisma:studio"
+  },
+  "workspaces": [
+    "src/backend",
+    "src/frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.1"
+  }
+}
