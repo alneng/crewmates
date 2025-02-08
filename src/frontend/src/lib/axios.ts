@@ -7,3 +7,15 @@ const api = axios.create({
 });
 
 export default api;
+
+export const mapbox = axios.create({
+  baseURL: "https://api.mapbox.com",
+});
+
+mapbox.interceptors.request.use((config) => {
+  config.params = {
+    ...config.params,
+    access_token: import.meta.env.VITE_MAPBOX_TOKEN,
+  };
+  return config;
+});

@@ -5,6 +5,7 @@ import "./CollaborativeMap.css";
 import { useSocket } from "../hooks/socket.hooks";
 import { useCollaborators } from "../hooks/collaborator.hooks";
 import { useSession } from "@/lib/auth-client";
+import { mapbox } from "@/lib/axios";
 
 interface Props {
   sessionId: string;
@@ -28,7 +29,7 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
   const { data: session } = useSession();
 
   const handleWaypointsUpdate = useCallback(
-    (map: mapboxgl.Map, waypoints: Props["waypoints"]) => {
+    async (map: mapboxgl.Map, waypoints: Props["waypoints"]) => {
       // Clear existing route
       if (map.getLayer("route")) map.removeLayer("route");
       if (map.getSource("route")) map.removeSource("route");
@@ -48,42 +49,47 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
           maxZoom: 15,
         });
 
-        // Add route line for 2+ waypoints
+        // Add driving route for 2+ waypoints
         if (sortedWaypoints.length >= 2) {
-          const coordinates = sortedWaypoints.map((wp) => [
-            wp.longitude,
-            wp.latitude,
-          ]);
-
           try {
-            map.addSource("route", {
-              type: "geojson",
-              data: {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates,
-                },
-              },
-            });
+            // Construct the coordinates query string
+            const coordinates = sortedWaypoints
+              .map((wp) => `${wp.longitude},${wp.latitude}`)
+              .join(";");
 
-            map.addLayer({
-              id: "route",
-              type: "line",
-              source: "route",
-              layout: {
-                "line-join": "round",
-                "line-cap": "round",
-              },
-              paint: {
-                "line-color": "#4ade80",
-                "line-width": 3,
-                "line-opacity": 0.8,
-              },
-            });
+            // Fetch the driving directions from Mapbox
+            const response = await mapbox.get(
+              `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full`
+            );
+            const data = response.data;
+
+            if (data.routes && data.routes[0]) {
+              map.addSource("route", {
+                type: "geojson",
+                data: {
+                  type: "Feature",
+                  properties: {},
+                  geometry: data.routes[0].geometry,
+                },
+              });
+
+              map.addLayer({
+                id: "route",
+                type: "line",
+                source: "route",
+                layout: {
+                  "line-join": "round",
+                  "line-cap": "round",
+                },
+                paint: {
+                  "line-color": "#0f52fe",
+                  "line-width": 5,
+                  "line-opacity": 0.8,
+                },
+              });
+            }
           } catch (error) {
-            console.error("Error adding route:", error);
+            console.error("Error fetching/adding route:", error);
           }
         }
       }

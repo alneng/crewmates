@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { X } from "lucide-react";
+import { mapbox } from "@/lib/axios";
 
 interface WaypointInputProps {
   placeholder: string;
@@ -36,19 +37,16 @@ export const WaypointInput = ({
     }
 
     try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          query
-        )}.json?` +
-          new URLSearchParams({
-            access_token: import.meta.env.VITE_MAPBOX_TOKEN,
-            types: "address",
-            proximity: "-71.0589,42.3601", // Center on Boston area
-            bbox: "-71.1912,42.2279,-70.9228,42.4671", // Bounding box for greater Boston area
-            limit: "5",
-          })
+      const params = new URLSearchParams({
+        types: "address",
+        proximity: "-71.0589,42.3601", // Default center on Boston area
+        limit: "5",
+      });
+      const response = await mapbox.get(
+        `/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
+          params
       );
-      const data = await response.json();
+      const data = response.data;
       setSuggestions(data.features);
     } catch (error) {
       console.error("Failed to fetch suggestions:", error);
