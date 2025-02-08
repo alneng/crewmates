@@ -13,6 +13,11 @@ interface RoadTrip {
   createdAt: string;
 }
 
+interface ActiveSession {
+  id: string;
+  roadTripId: string;
+}
+
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [roadTrips, setRoadTrips] = useState<RoadTrip[]>([]);
@@ -27,8 +32,8 @@ const DashboardPage: React.FC = () => {
 
       const sessionResponse = await api.get("/sessions/user/active");
       // Create a Map instead of a Set to store sessionId
-      const activeSessionMap = new Map(
-        sessionResponse.data.map((s: any) => [s.roadTripId, s.id])
+      const activeSessionMap = new Map<string, string>(
+        sessionResponse.data.map((s: ActiveSession) => [s.roadTripId, s.id])
       );
       setActiveSessionIds(activeSessionMap);
     };
