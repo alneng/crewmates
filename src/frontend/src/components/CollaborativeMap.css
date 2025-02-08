@@ -1,0 +1,67 @@
+.waypoint-marker {
+  position: relative;
+}
+
+.waypoint-marker .marker-content {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.waypoint-marker.endpoint .marker-content {
+  width: 40px;
+  height: 40px;
+  background-color: #2563eb; /* blue-600 */
+}
+
+.waypoint-marker.stop .marker-content {
+  background-color: #a855f7; /* purple-500 */
+}
+
+.waypoint-marker .tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background-color: #27272a; /* zinc-800 */
+  color: #fafafa; /* zinc-100 */
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.waypoint-marker:hover .tooltip {
+  opacity: 1;
+}
+
+.collaborator-cursor {
+  pointer-events: none;
+}
+
+.collaborator-cursor .cursor {
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  background-color: #a855f7; /* purple-500 */
+}
+
+.collaborator-cursor .label {
+  padding: 4px 8px;
+  margin-top: -4px;
+  background-color: #a855f7; /* purple-500 */
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  text-align: center;
+}

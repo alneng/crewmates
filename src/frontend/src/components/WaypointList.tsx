@@ -1,5 +1,10 @@
-import { useCallback, useState } from "react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { useCallback, useEffect, useState } from "react";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import { useSocket } from "../hooks/socket.hooks";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -39,7 +44,7 @@ export const WaypointList = ({
   const [stops, setStops] = useState<Array<{ id: string; name: string }>>([]);
 
   const handleDragEnd = useCallback(
-    async (result: any) => {
+    async (result: DropResult) => {
       if (!result.destination) return;
 
       const newOrder = result.destination.index;
@@ -52,43 +57,86 @@ export const WaypointList = ({
   );
 
   const handleAddStop = () => {
-    const newStop = { id: Math.random().toString(), name: "" };
+    const newStopId = Math.random().toString();
+    const newStop = { id: newStopId, name: "" };
     setStops([...stops, newStop]);
   };
+
+  useEffect(() => {
+    // Initialize state from waypoints prop
+    const sorted = [...waypoints].sort((a, b) => a.order - b.order);
+    if (sorted.length > 0) {
+      // Set start point
+      if (sorted[0]) setStartPoint(sorted[0].name);
+      // Set end point
+      if (sorted[sorted.length - 1])
+        setEndPoint(sorted[sorted.length - 1].name);
+      // Set stops
+      const middlePoints = sorted.slice(1, -1);
+      setStops(middlePoints.map((wp) => ({ id: wp.id, name: wp.name })));
+    }
+  }, [waypoints]);
 
   const handleLocationSelect = async (
     value: string,
     coordinates: { lat: number; lng: number } | undefined,
     type: "start" | "end" | string
   ) => {
-    if (!coordinates) return;
-
-    if (type === "start") {
-      setStartPoint(value);
-      await onAdd({
-        name: value,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-      });
-    } else if (type === "end") {
-      setEndPoint(value);
-      await onAdd({
-        name: value,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-      });
-    } else {
-      setStops(
-        stops.map((stop) =>
-          stop.id === type ? { ...stop, name: value } : stop
-        )
-      );
-      await onAdd({
-        name: value,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-      });
+    if (!coordinates) {
+      // Just update the input value if no coordinates (user is typing)
+      if (type === "start") {
+        setStartPoint(value);
+      } else if (type === "end") {
+        setEndPoint(value);
+      } else {
+        setStops(
+          stops.map((stop) =>
+            stop.id === type ? { ...stop, name: value } : stop
+          )
+        );
+      }
+      return;
     }
+
+    // Add waypoint when coordinates are available (location selected)
+    try {
+      await onAdd({
+        name: value,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
+      });
+
+      // Update local state
+      if (type === "start") {
+        setStartPoint(value);
+      } else if (type === "end") {
+        setEndPoint(value);
+      } else {
+        setStops(
+          stops.map((stop) =>
+            stop.id === type ? { ...stop, name: value } : stop
+          )
+        );
+      }
+
+      // Emit socket event for real-time collaboration
+      socket?.emit("waypoint-added", {
+        name: value,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
+      });
+    } catch (error) {
+      console.error("Failed to add waypoint:", error);
+    }
+  };
+
+  const handleRemoveStop = async (stopId: string) => {
+    const waypoint = waypoints.find((w) => w.id === stopId);
+    if (waypoint) {
+      await onDelete(waypoint.id);
+      socket?.emit("waypoint-deleted", { id: waypoint.id });
+    }
+    setStops(stops.filter((stop) => stop.id !== stopId));
   };
 
   return (
@@ -134,9 +182,7 @@ export const WaypointList = ({
                           onChange={(value, coords) =>
                             handleLocationSelect(value, coords, stop.id)
                           }
-                          onRemove={() =>
-                            setStops(stops.filter((s) => s.id !== stop.id))
-                          }
+                          onRemove={() => handleRemoveStop(stop.id)}
                         />
                       </div>
                     )}

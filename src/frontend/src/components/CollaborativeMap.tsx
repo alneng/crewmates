@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import "./CollaborativeMap.css";
 import { useSocket } from "../hooks/socket.hooks";
 import { useCollaborators } from "../hooks/collaborator.hooks";
 import { useSession } from "@/lib/auth-client";
@@ -20,97 +21,141 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const mapInstance = useRef<mapboxgl.Map | null>(null);
   const cursorMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const socket = useSocket(sessionId);
   const collaborators = useCollaborators(socket);
   const { data: session } = useSession();
 
+  const handleWaypointsUpdate = useCallback(
+    (map: mapboxgl.Map, waypoints: Props["waypoints"]) => {
+      // Clear existing route
+      if (map.getLayer("route")) map.removeLayer("route");
+      if (map.getSource("route")) map.removeSource("route");
+
+      // Sort waypoints
+      const sortedWaypoints = [...waypoints].sort((a, b) => a.order - b.order);
+
+      // Update viewport if we have waypoints
+      if (sortedWaypoints.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        sortedWaypoints.forEach((waypoint) => {
+          bounds.extend([waypoint.longitude, waypoint.latitude]);
+        });
+
+        map.fitBounds(bounds, {
+          padding: { top: 50, bottom: 50, left: 350, right: 50 },
+          maxZoom: 15,
+        });
+
+        // Add route line for 2+ waypoints
+        if (sortedWaypoints.length >= 2) {
+          const coordinates = sortedWaypoints.map((wp) => [
+            wp.longitude,
+            wp.latitude,
+          ]);
+
+          try {
+            map.addSource("route", {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates,
+                },
+              },
+            });
+
+            map.addLayer({
+              id: "route",
+              type: "line",
+              source: "route",
+              layout: {
+                "line-join": "round",
+                "line-cap": "round",
+              },
+              paint: {
+                "line-color": "#4ade80",
+                "line-width": 3,
+                "line-opacity": 0.8,
+              },
+            });
+          } catch (error) {
+            console.error("Error adding route:", error);
+          }
+        }
+      }
+    },
+    []
+  );
+
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || mapInstance.current) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
-    map.current = new mapboxgl.Map({
+    mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [-74.5, 40],
-      zoom: 9,
+      center: [-71.0589, 42.3601], // Boston center
+      zoom: 12,
     });
 
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+    const map = mapInstance.current;
+    map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+    map.on("load", () => {
+      handleWaypointsUpdate(map, waypoints);
+    });
 
     return () => {
-      map.current?.remove();
-      map.current = null;
+      map.remove();
+      mapInstance.current = null;
     };
-  }, []);
+  }, [handleWaypointsUpdate, waypoints]);
+
+  // Update route when waypoints change
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    if (!map.isStyleLoaded()) {
+      map.once("style.load", () => handleWaypointsUpdate(map, waypoints));
+    } else {
+      handleWaypointsUpdate(map, waypoints);
+    }
+  }, [handleWaypointsUpdate, waypoints]);
 
   // Handle cursor movement
   const handleMouseMove = useCallback(
     (e: mapboxgl.MapMouseEvent & { lngLat: mapboxgl.LngLat }) => {
       if (!socket || !session?.user) return;
-
       socket.emit("cursor-move", {
         latitude: e.lngLat.lat,
         longitude: e.lngLat.lng,
       });
     },
-    [socket, session]
+    [socket, session?.user]
   );
 
   // Setup mouse move handler
   useEffect(() => {
-    if (!map.current) return;
+    const map = mapInstance.current;
+    if (!map) return;
 
-    map.current.on("mousemove", handleMouseMove);
+    map.on("mousemove", handleMouseMove);
     return () => {
-      map.current?.off("mousemove", handleMouseMove);
+      map.off("mousemove", handleMouseMove);
     };
   }, [handleMouseMove]);
 
-  // Update waypoint markers
-  useEffect(() => {
-    if (!map.current) return;
-
-    // Remove old markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current.clear();
-
-    // Add new markers
-    waypoints.forEach((waypoint) => {
-      const el = document.createElement("div");
-      el.className = "waypoint-marker";
-      el.innerHTML = `
-        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-          ${waypoint.order + 1}
-        </div>
-      `;
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([waypoint.longitude, waypoint.latitude])
-        .addTo(map.current!);
-
-      markersRef.current.set(waypoint.id, marker);
-    });
-
-    // Fit bounds if we have waypoints
-    if (waypoints.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      waypoints.forEach((waypoint) => {
-        bounds.extend([waypoint.longitude, waypoint.latitude]);
-      });
-      map.current.fitBounds(bounds, { padding: 50 });
-    }
-  }, [waypoints]);
-
   // Update collaborator cursors
-  useEffect(() => {
-    if (!map.current) return;
+  const updateCollaboratorCursors = useCallback(() => {
+    const map = mapInstance.current;
+    if (!map) return;
 
-    // Remove cursors for disconnected users
     cursorMarkersRef.current.forEach((marker, userId) => {
       if (!collaborators.has(userId)) {
         marker.remove();
@@ -118,9 +163,8 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
       }
     });
 
-    // Update cursor positions
     collaborators.forEach((collaborator, userId) => {
-      if (userId === session?.user?.id) return; // Don't show own cursor
+      if (userId === session?.user?.id) return;
 
       if (collaborator.cursor) {
         let marker = cursorMarkersRef.current.get(userId);
@@ -129,12 +173,8 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
           const el = document.createElement("div");
           el.className = "collaborator-cursor";
           el.innerHTML = `
-            <div class="flex flex-col items-center">
-              <div class="w-4 h-4 transform rotate-45 bg-purple-500"></div>
-              <div class="px-2 py-1 -mt-1 bg-purple-500 rounded text-white text-xs">
-                ${collaborator.userId}
-              </div>
-            </div>
+            <div class="cursor"></div>
+            <div class="label">${collaborator.userId}</div>
           `;
 
           marker = new mapboxgl.Marker({
@@ -149,10 +189,14 @@ export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
             collaborator.cursor.longitude,
             collaborator.cursor.latitude,
           ])
-          .addTo(map.current);
+          .addTo(map);
       }
     });
-  }, [collaborators, session]);
+  }, [collaborators, session?.user?.id]);
+
+  useEffect(() => {
+    updateCollaboratorCursors();
+  }, [updateCollaboratorCursors]);
 
   return (
     <div

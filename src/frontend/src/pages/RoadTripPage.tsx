@@ -7,6 +7,7 @@ import { Share2, ArrowLeft, Users, X } from "lucide-react";
 import api from "@/lib/axios";
 import { useSession } from "@/lib/auth-client";
 import { Input } from "@/components/ui/input";
+import { AxiosError } from "axios";
 
 interface RoadTrip {
   id: string;
@@ -49,6 +50,32 @@ const RoadTripPage = () => {
 
     fetchRoadTrip();
   }, [id, session?.user?.id, navigate]);
+
+  const handleAddWaypoint = async (waypoint: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    if (!roadTrip) return;
+
+    try {
+      const response = await api.post(`/roadtrips/${roadTrip.id}/waypoints`, {
+        ...waypoint,
+        order: roadTrip.waypoints.length, // Add at the end
+      });
+
+      // Update local state
+      setRoadTrip((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          waypoints: [...prev.waypoints, response.data],
+        };
+      });
+    } catch (error) {
+      console.error("Failed to add waypoint:", error);
+    }
+  };
 
   const handleUpdateWaypoint = async (
     waypointId: string,
@@ -129,8 +156,11 @@ const RoadTripPage = () => {
       setInviteEmail("");
       setInviteError(null);
       setShowInvite(false);
-    } catch (error: any) {
-      setInviteError(error.response?.data?.error || "Failed to invite member");
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      setInviteError(
+        axiosError.response?.data?.error || "Failed to invite member"
+      );
     }
   };
 
@@ -242,6 +272,7 @@ const RoadTripPage = () => {
             waypoints={roadTrip.waypoints}
             onUpdate={handleUpdateWaypoint}
             onDelete={handleDeleteWaypoint}
+            onAdd={handleAddWaypoint}
           />
         </div>
 

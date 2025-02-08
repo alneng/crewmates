@@ -18,14 +18,22 @@ export const WaypointInput = ({
   onRemove,
   showRemove = true,
 }: WaypointInputProps) => {
+  const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<
     Array<{ place_name: string; center: [number, number] }>
   >([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   const searchPlace = async (query: string) => {
-    if (!query) return;
+    if (!query) {
+      setSuggestions([]);
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -34,7 +42,9 @@ export const WaypointInput = ({
         )}.json?` +
           new URLSearchParams({
             access_token: import.meta.env.VITE_MAPBOX_TOKEN,
-            types: "place,address",
+            types: "address",
+            proximity: "-71.0589,42.3601", // Center on Boston area
+            bbox: "-71.1912,42.2279,-70.9228,42.4671", // Bounding box for greater Boston area
             limit: "5",
           })
       );
@@ -45,16 +55,17 @@ export const WaypointInput = ({
     }
   };
 
-  const handleInputChange = (inputValue: string) => {
-    onChange(inputValue);
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue);
+    onChange(newValue); // Pass the value up without coordinates
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    if (inputValue.trim()) {
+    if (newValue.trim()) {
       timeoutRef.current = setTimeout(() => {
-        searchPlace(inputValue);
+        searchPlace(newValue);
         setShowSuggestions(true);
       }, 300);
     } else {
@@ -63,11 +74,17 @@ export const WaypointInput = ({
     }
   };
 
-  const handleSuggestionClick = (suggestion: any) => {
-    onChange(suggestion.place_name, {
-      lat: suggestion.center[1],
-      lng: suggestion.center[0],
-    });
+  const handleSuggestionClick = (suggestion: {
+    place_name: string;
+    center: [number, number];
+  }) => {
+    const newValue = suggestion.place_name;
+    setInputValue(newValue);
+
+    // Mapbox returns coordinates as [longitude, latitude]
+    const [lng, lat] = suggestion.center;
+    onChange(newValue, { lat, lng });
+
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -84,11 +101,11 @@ export const WaypointInput = ({
     <div className="relative">
       <div className="flex gap-2">
         <Input
-          value={value}
+          value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={placeholder}
           className="bg-zinc-900 border-zinc-700 text-zinc-200"
-          onFocus={() => value && setShowSuggestions(true)}
+          onFocus={() => inputValue && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         />
         {showRemove && onRemove && (
