@@ -1,21 +1,38 @@
 import { Router } from "express";
 import { RoadTripController } from "../controllers/roadtrip.controller";
+import { SessionController } from "../controllers/session.controller";
 import { protectedEndpoint } from "../utils/auth";
 
-const router = Router();
-const controller = new RoadTripController();
+const roadtripRouter = Router();
+const roadtripController = new RoadTripController();
+const sessionController = new SessionController();
 
-router.use(protectedEndpoint);
+roadtripRouter.use(protectedEndpoint);
 
-router.post("/", controller.createRoadTrip);
-router.get("/", controller.getUserRoadTrips);
-router.get("/:id", controller.getRoadTrip);
-router.put("/:id", controller.updateRoadTrip);
-router.delete("/:id", controller.deleteRoadTrip);
-router.post("/:id/members", controller.addMember);
-router.delete("/:id/members/:userId", controller.removeMember);
-router.post("/:id/waypoints", controller.addWaypoint);
-router.put("/:id/waypoints/:waypointId", controller.updateWaypoint);
-router.delete("/:id/waypoints/:waypointId", controller.deleteWaypoint);
+// Core roadtrip endpoints
+roadtripRouter.post("/", roadtripController.createRoadTrip);
+roadtripRouter.get("/", roadtripController.getUserRoadTrips);
+roadtripRouter.get("/:id", roadtripController.getRoadTrip);
+roadtripRouter.put("/:id", roadtripController.updateRoadTrip);
+roadtripRouter.delete("/:id", roadtripController.deleteRoadTrip);
 
-export default router;
+// Member management
+roadtripRouter.post("/:id/members", roadtripController.addMember);
+roadtripRouter.delete("/:id/members/:userId", roadtripController.removeMember);
+
+// Waypoint management
+roadtripRouter.post("/:id/waypoints", roadtripController.addWaypoint);
+roadtripRouter.put(
+  "/:id/waypoints/:waypointId",
+  roadtripController.updateWaypoint
+);
+roadtripRouter.delete(
+  "/:id/waypoints/:waypointId",
+  roadtripController.deleteWaypoint
+);
+
+// Session management for specific roadtrips
+roadtripRouter.post("/:id/sessions", sessionController.createSession);
+roadtripRouter.get("/:id/sessions/active", sessionController.getActiveSession);
+
+export default roadtripRouter;

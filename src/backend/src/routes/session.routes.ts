@@ -2,23 +2,16 @@ import { Router } from "express";
 import { SessionController } from "../controllers/session.controller";
 import { protectedEndpoint } from "../utils/auth";
 
-const router = Router();
+const sessionRouter = Router();
 const controller = new SessionController();
 
-router.use(protectedEndpoint);
+sessionRouter.use(protectedEndpoint);
 
-// Core session management
-router.post("/roadtrips/:roadTripId/sessions", controller.createSession);
-router.get(
-  "/roadtrips/:roadTripId/sessions/active",
-  controller.getActiveSession
-);
-router.delete("/sessions/:sessionId", controller.endSession);
+// Session management not tied to specific roadtrips
+sessionRouter.get("/user/active", controller.getUserActiveSessions);
+sessionRouter.get("/:sessionId", controller.getSession);
+sessionRouter.patch("/:sessionId/extend", controller.extendSession);
+sessionRouter.delete("/:sessionId", controller.endSession);
+sessionRouter.post("/cleanup", controller.cleanupExpiredSessions);
 
-// Additional session endpoints
-router.get("/sessions/:sessionId", controller.getSession);
-router.patch("/sessions/:sessionId/extend", controller.extendSession);
-router.get("/sessions/user/active", controller.getUserActiveSessions);
-router.post("/sessions/cleanup", controller.cleanupExpiredSessions);
-
-export default router;
+export default sessionRouter;

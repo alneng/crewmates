@@ -14,33 +14,59 @@ export const useCollaborators = (socket: Socket | null) => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("user-joined", ({ userId }) => {
-      setCollaborators((prev) => new Map(prev).set(userId, { userId }));
-    });
+    const handleUserJoined = ({ userId }: { userId: string }) => {
+      setCollaborators((prev) => {
+        const next = new Map(prev);
+        next.set(userId, { userId });
+        return next;
+      });
+    };
 
-    socket.on("user-left", ({ userId }) => {
+    const handleUserLeft = ({ userId }: { userId: string }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
         next.delete(userId);
         return next;
       });
-    });
+    };
 
-    socket.on("cursor-update", ({ userId, latitude, longitude }) => {
+    const handleCursorUpdate = ({
+      userId,
+      latitude,
+      longitude,
+    }: {
+      userId: string;
+      latitude: number;
+      longitude: number;
+    }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
         const user = next.get(userId);
         if (user) {
           next.set(userId, { ...user, cursor: { latitude, longitude } });
+        } else {
+          next.set(userId, { userId, cursor: { latitude, longitude } });
         }
         return next;
       });
-    });
+    };
 
+    const handleDisconnect = () => {
+      setCollaborators(new Map());
+    };
+
+    // Add event listeners
+    socket.on("user-joined", handleUserJoined);
+    socket.on("user-left", handleUserLeft);
+    socket.on("cursor-update", handleCursorUpdate);
+    socket.on("disconnect", handleDisconnect);
+
+    // Cleanup
     return () => {
-      socket.off("user-joined");
-      socket.off("user-left");
-      socket.off("cursor-update");
+      socket.off("user-joined", handleUserJoined);
+      socket.off("user-left", handleUserLeft);
+      socket.off("cursor-update", handleCursorUpdate);
+      socket.off("disconnect", handleDisconnect);
     };
   }, [socket]);
 

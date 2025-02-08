@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { prisma } from "../prisma";
+import { corsOptions } from "../config";
 
 interface CursorPosition {
   userId: string;
@@ -18,8 +19,9 @@ export class SocketService {
   constructor(server: any) {
     this.io = new Server(server, {
       cors: {
-        origin: process.env.FRONTEND_URL,
+        origin: corsOptions.origin,
         methods: ["GET", "POST"],
+        credentials: true,
       },
     });
 
@@ -37,7 +39,14 @@ export class SocketService {
     socket.on("join-session", async (sessionId: string) => {
       const session = await prisma.liveSession.findUnique({
         where: { id: sessionId },
-        include: { roadTrip: true },
+        include: {
+          roadTrip: {
+            include: {
+              members: true,
+              owner: true,
+            },
+          },
+        },
       });
 
       if (!session) {
@@ -45,13 +54,28 @@ export class SocketService {
         return;
       }
 
-      socket.join(sessionId);
+      // Check if user has access
+      const hasAccess =
+        session.roadTrip.members.some((m) => m.id === userId) ||
+        session.roadTrip.ownerId === userId;
+
+      if (!hasAccess) {
+        socket.emit("error", "Access denied");
+        return;
+      }
+
+      await socket.join(sessionId);
+
+      // Notify others in the room
       socket.to(sessionId).emit("user-joined", { userId });
     });
 
     // Handle cursor updates
     socket.on("cursor-move", (data: CursorPosition) => {
       const sessionId = Array.from(socket.rooms)[1]; // First room is socket's own room
+      if (!sessionId) return;
+
+      // Emit to everyone in the room except the sender
       socket.to(sessionId).emit("cursor-update", {
         userId,
         latitude: data.latitude,
@@ -62,6 +86,7 @@ export class SocketService {
     // Handle waypoint updates
     socket.on("waypoint-update", async (data: WaypointUpdate) => {
       const sessionId = Array.from(socket.rooms)[1];
+      if (!sessionId) return;
 
       // Update in database
       await prisma.waypoint.update({

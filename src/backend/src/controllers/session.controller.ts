@@ -12,12 +12,12 @@ export class SessionController {
 
   createSession = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { roadTripId } = req.params;
+      const { id } = req.params;
       const userId = req.user!.id;
 
       // Verify user has access to the road trip
       const roadTrip = await prisma.roadTrip.findUnique({
-        where: { id: roadTripId },
+        where: { id },
         include: { members: true },
       });
 
@@ -30,9 +30,10 @@ export class SessionController {
         return;
       }
 
-      const session = await this.service.createSession(roadTripId);
+      const session = await this.service.createSession(id);
       res.status(201).json(session);
     } catch (error) {
+      console.log(error);
       next(new HttpException(500, "Failed to create session"));
     }
   };
@@ -43,12 +44,12 @@ export class SessionController {
     next: NextFunction
   ) => {
     try {
-      const { roadTripId } = req.params;
+      const { id } = req.params;
       const userId = req.user!.id;
 
       // Verify user has access to the road trip
       const roadTrip = await prisma.roadTrip.findUnique({
-        where: { id: roadTripId },
+        where: { id },
         include: { members: true },
       });
 
@@ -61,7 +62,7 @@ export class SessionController {
         return;
       }
 
-      const session = await this.service.getActiveSession(roadTripId);
+      const session = await this.service.getActiveSession(id);
 
       if (!session) {
         res.status(404).json({ error: "No active session found" });
