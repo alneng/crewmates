@@ -39,66 +39,87 @@ export const WaypointList = ({
   onAdd,
 }: Props) => {
   const socket = useSocket(sessionId);
-  const [startPoint, setStartPoint] = useState("");
-  const [endPoint, setEndPoint] = useState("");
-  const [stops, setStops] = useState<Array<{ id: string; name: string }>>([]);
+  const [orderedWaypoints, setOrderedWaypoints] = useState<
+    Array<{
+      id: string;
+      name: string;
+      isEndpoint: boolean;
+    }>
+  >([]);
+
+  useEffect(() => {
+    // Initialize ordered waypoints from props
+    const sorted = [...waypoints].sort((a, b) => a.order - b.order);
+    const mapped = sorted.map((wp, index) => ({
+      id: wp.id,
+      name: wp.name,
+      isEndpoint: index === 0 || index === sorted.length - 1,
+    }));
+
+    // Ensure at least 2 waypoints
+    if (mapped.length < 2) {
+      const defaults = [
+        { id: "start", name: "", isEndpoint: true },
+        { id: "end", name: "", isEndpoint: true },
+      ];
+      setOrderedWaypoints(defaults);
+    } else {
+      setOrderedWaypoints(mapped);
+    }
+  }, [waypoints]);
 
   const handleDragEnd = useCallback(
     async (result: DropResult) => {
       if (!result.destination) return;
 
-      const newOrder = result.destination.index;
-      const waypointId = result.draggableId;
+      const reorderedWaypoints = Array.from(orderedWaypoints);
+      const [reorderedItem] = reorderedWaypoints.splice(result.source.index, 1);
+      reorderedWaypoints.splice(result.destination.index, 0, reorderedItem);
 
+      // Update isEndpoint flags
+      const updatedWaypoints = reorderedWaypoints.map((wp, index) => ({
+        ...wp,
+        isEndpoint: index === 0 || index === reorderedWaypoints.length - 1,
+      }));
+
+      setOrderedWaypoints(updatedWaypoints);
+
+      // Update backend
+      const waypointId = result.draggableId;
+      const newOrder = result.destination.index;
       await onUpdate(waypointId, { order: newOrder });
       socket?.emit("waypoint-update", { id: waypointId, order: newOrder });
     },
-    [onUpdate, socket]
+    [orderedWaypoints, onUpdate, socket]
   );
 
   const handleAddStop = () => {
-    const newStopId = Math.random().toString();
-    const newStop = { id: newStopId, name: "" };
-    setStops([...stops, newStop]);
-  };
+    const newWaypoint = {
+      id: Math.random().toString(),
+      name: "",
+      isEndpoint: false,
+    };
 
-  useEffect(() => {
-    // Initialize state from waypoints prop
-    const sorted = [...waypoints].sort((a, b) => a.order - b.order);
-    if (sorted.length > 0) {
-      // Set start point
-      if (sorted[0]) setStartPoint(sorted[0].name);
-      // Set end point
-      if (sorted[sorted.length - 1])
-        setEndPoint(sorted[sorted.length - 1].name);
-      // Set stops
-      const middlePoints = sorted.slice(1, -1);
-      setStops(middlePoints.map((wp) => ({ id: wp.id, name: wp.name })));
-    }
-  }, [waypoints]);
+    // Insert the new waypoint before the last waypoint
+    const newWaypoints = [...orderedWaypoints];
+    newWaypoints.splice(orderedWaypoints.length - 1, 0, newWaypoint);
+    setOrderedWaypoints(newWaypoints);
+  };
 
   const handleLocationSelect = async (
     value: string,
     coordinates: { lat: number; lng: number } | undefined,
-    type: "start" | "end" | string
+    waypointId: string
   ) => {
-    if (!coordinates) {
-      // Just update the input value if no coordinates (user is typing)
-      if (type === "start") {
-        setStartPoint(value);
-      } else if (type === "end") {
-        setEndPoint(value);
-      } else {
-        setStops(
-          stops.map((stop) =>
-            stop.id === type ? { ...stop, name: value } : stop
-          )
-        );
-      }
-      return;
-    }
+    // Update local state immediately for responsive UI
+    setOrderedWaypoints(
+      orderedWaypoints.map((wp) =>
+        wp.id === waypointId ? { ...wp, name: value } : wp
+      )
+    );
 
-    // Add waypoint when coordinates are available (location selected)
+    if (!coordinates) return; // Only update backend when coordinates are available
+
     try {
       await onAdd({
         name: value,
@@ -106,20 +127,6 @@ export const WaypointList = ({
         longitude: coordinates.lng,
       });
 
-      // Update local state
-      if (type === "start") {
-        setStartPoint(value);
-      } else if (type === "end") {
-        setEndPoint(value);
-      } else {
-        setStops(
-          stops.map((stop) =>
-            stop.id === type ? { ...stop, name: value } : stop
-          )
-        );
-      }
-
-      // Emit socket event for real-time collaboration
       socket?.emit("waypoint-added", {
         name: value,
         latitude: coordinates.lat,
@@ -130,13 +137,18 @@ export const WaypointList = ({
     }
   };
 
-  const handleRemoveStop = async (stopId: string) => {
-    const waypoint = waypoints.find((w) => w.id === stopId);
-    if (waypoint) {
-      await onDelete(waypoint.id);
-      socket?.emit("waypoint-deleted", { id: waypoint.id });
-    }
-    setStops(stops.filter((stop) => stop.id !== stopId));
+  const handleRemoveStop = async (waypointId: string) => {
+    // Don't allow removing if we only have 2 waypoints
+    if (orderedWaypoints.length <= 2) return;
+
+    // Don't allow removing endpoints
+    const waypoint = orderedWaypoints.find((wp) => wp.id === waypointId);
+    if (waypoint?.isEndpoint) return;
+
+    await onDelete(waypointId);
+    socket?.emit("waypoint-deleted", { id: waypointId });
+
+    setOrderedWaypoints(orderedWaypoints.filter((wp) => wp.id !== waypointId));
   };
 
   return (
@@ -146,17 +158,6 @@ export const WaypointList = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Starting Point */}
-        <WaypointInput
-          placeholder="Choose starting point"
-          value={startPoint}
-          onChange={(value, coords) =>
-            handleLocationSelect(value, coords, "start")
-          }
-          showRemove={false}
-        />
-
-        {/* Stops */}
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="waypoints">
             {(provided) => (
@@ -165,8 +166,12 @@ export const WaypointList = ({
                 ref={provided.innerRef}
                 className="space-y-2"
               >
-                {stops.map((stop, index) => (
-                  <Draggable key={stop.id} draggableId={stop.id} index={index}>
+                {orderedWaypoints.map((waypoint, index) => (
+                  <Draggable
+                    key={waypoint.id}
+                    draggableId={waypoint.id}
+                    index={index}
+                  >
                     {(provided) => (
                       <div
                         ref={provided.innerRef}
@@ -177,12 +182,23 @@ export const WaypointList = ({
                           <GripVertical className="h-5 w-5 text-zinc-400" />
                         </div>
                         <WaypointInput
-                          placeholder={`Stop ${index + 1}`}
-                          value={stop.name}
-                          onChange={(value, coords) =>
-                            handleLocationSelect(value, coords, stop.id)
+                          placeholder={
+                            index === 0
+                              ? "Choose starting point"
+                              : index === orderedWaypoints.length - 1
+                              ? "Choose destination"
+                              : `Stop ${index}`
                           }
-                          onRemove={() => handleRemoveStop(stop.id)}
+                          value={waypoint.name}
+                          onChange={(value, coords) =>
+                            handleLocationSelect(value, coords, waypoint.id)
+                          }
+                          onRemove={
+                            waypoint.isEndpoint
+                              ? undefined
+                              : () => handleRemoveStop(waypoint.id)
+                          }
+                          showRemove={!waypoint.isEndpoint}
                         />
                       </div>
                     )}
@@ -194,17 +210,6 @@ export const WaypointList = ({
           </Droppable>
         </DragDropContext>
 
-        {/* End Point */}
-        <WaypointInput
-          placeholder="Choose destination"
-          value={endPoint}
-          onChange={(value, coords) =>
-            handleLocationSelect(value, coords, "end")
-          }
-          showRemove={false}
-        />
-
-        {/* Add Stop Button */}
         <Button
           variant="ghost"
           onClick={handleAddStop}
@@ -217,3 +222,5 @@ export const WaypointList = ({
     </Card>
   );
 };
+
+export default WaypointList;

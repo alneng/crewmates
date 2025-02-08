@@ -96,7 +96,7 @@ export const WaypointInput = ({
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="flex gap-2">
         <Input
           value={inputValue}
