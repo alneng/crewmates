@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router";
 import { useSession } from "@/lib/auth-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/NotFound";
@@ -24,50 +25,52 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App: React.FC = () => {
+  const queryClient = new QueryClient();
+
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/auth" element={<AuthPage />} />
-
-        {/* Protected routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/roadtrips/new"
-          element={
-            <ProtectedRoute>
-              <NewRoadTripPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/roadtrips/:id"
-          element={
-            <ProtectedRoute>
-              <RoadTripPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/join/:sessionId"
-          element={
-            <ProtectedRoute>
-              <JoinSessionPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/auth" element={<AuthPage />} />
+          {/* Protected routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roadtrips/new"
+            element={
+              <ProtectedRoute>
+                <NewRoadTripPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roadtrips/:id"
+            element={
+              <ProtectedRoute>
+                <RoadTripPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/join/:sessionId"
+            element={
+              <ProtectedRoute>
+                <JoinSessionPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 

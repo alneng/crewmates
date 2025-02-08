@@ -1,77 +1,42 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router";
 import { CollaborativeMap } from "@/components/CollaborativeMap";
 import { WaypointList } from "@/components/WaypointList";
 import { Button } from "@/components/ui/button";
 import { Share2, ArrowLeft, Users, X } from "lucide-react";
-import api from "@/lib/axios";
-import { useSession } from "@/lib/auth-client";
 import { Input } from "@/components/ui/input";
-import { AxiosError } from "axios";
-
-interface RoadTrip {
-  id: string;
-  name: string;
-  owner: { id: string; name: string };
-  members: Array<{ id: string; name: string }>;
-  waypoints: Array<{
-    id: string;
-    name: string;
-    latitude: number;
-    longitude: number;
-    order: number;
-  }>;
-}
+import {
+  useRoadTrip,
+  useAddWaypoint,
+  useUpdateWaypoint,
+  useDeleteWaypoint,
+  useInviteMember,
+  useRemoveMember,
+  type WaypointInput,
+} from "@/hooks/roadtrip.hooks";
+import { useSession } from "@/lib/auth-client";
 
 const RoadTripPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id = "" } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
   const navigate = useNavigate();
   const { data: session } = useSession();
 
-  const [roadTrip, setRoadTrip] = useState<RoadTrip | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteError, setInviteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRoadTrip = async () => {
-      try {
-        const response = await api.get(`/roadtrips/${id}`);
-        setRoadTrip(response.data);
-        setIsOwner(response.data.owner.id === session?.user?.id);
-      } catch (error) {
-        console.error("Failed to fetch road trip:", error);
-        navigate("/");
-      }
-    };
+  // Queries and Mutations
+  const { data: roadTrip, isLoading } = useRoadTrip(id);
+  const addWaypoint = useAddWaypoint(id);
+  const updateWaypoint = useUpdateWaypoint(id);
+  const deleteWaypoint = useDeleteWaypoint(id);
+  const inviteMember = useInviteMember(id);
+  const removeMember = useRemoveMember(id);
 
-    fetchRoadTrip();
-  }, [id, session?.user?.id, navigate]);
-
-  const handleAddWaypoint = async (waypoint: {
-    name: string;
-    latitude: number;
-    longitude: number;
-  }) => {
-    if (!roadTrip) return;
-
+  const handleAddWaypoint = async (waypoint: WaypointInput) => {
     try {
-      const response = await api.post(`/roadtrips/${roadTrip.id}/waypoints`, {
-        ...waypoint,
-        order: roadTrip.waypoints.length, // Add at the end
-      });
-
-      // Update local state
-      setRoadTrip((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          waypoints: [...prev.waypoints, response.data],
-        };
-      });
+      await addWaypoint.mutateAsync(waypoint);
     } catch (error) {
       console.error("Failed to add waypoint:", error);
     }
@@ -79,45 +44,18 @@ const RoadTripPage = () => {
 
   const handleUpdateWaypoint = async (
     waypointId: string,
-    updates: Partial<RoadTrip["waypoints"][0]>
+    updates: Partial<WaypointInput>
   ) => {
-    if (!roadTrip) return;
-
     try {
-      await api.put(
-        `/roadtrips/${roadTrip.id}/waypoints/${waypointId}`,
-        updates
-      );
-
-      // Update local state
-      setRoadTrip((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          waypoints: prev.waypoints.map((w) =>
-            w.id === waypointId ? { ...w, ...updates } : w
-          ),
-        };
-      });
+      await updateWaypoint.mutateAsync({ waypointId, updates });
     } catch (error) {
       console.error("Failed to update waypoint:", error);
     }
   };
 
   const handleDeleteWaypoint = async (waypointId: string) => {
-    if (!roadTrip) return;
-
     try {
-      await api.delete(`/roadtrips/${roadTrip.id}/waypoints/${waypointId}`);
-
-      // Update local state
-      setRoadTrip((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          waypoints: prev.waypoints.filter((w) => w.id !== waypointId),
-        };
-      });
+      await deleteWaypoint.mutateAsync(waypointId);
     } catch (error) {
       console.error("Failed to delete waypoint:", error);
     }
@@ -125,14 +63,9 @@ const RoadTripPage = () => {
 
   const handleShareSession = async () => {
     if (!sessionId) return;
-
-    // Generate shareable link
     const shareLink = `${window.location.origin}/join/${sessionId}`;
-
-    // Copy to clipboard
     try {
       await navigator.clipboard.writeText(shareLink);
-      // You might want to show a toast notification here
       alert("Share link copied to clipboard!");
     } catch (error) {
       console.error("Failed to copy share link:", error);
@@ -141,44 +74,28 @@ const RoadTripPage = () => {
 
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roadTrip || !inviteEmail.trim()) return;
+    if (!inviteEmail.trim()) return;
 
     try {
-      await api.post(`/roadtrips/${roadTrip.id}/members`, {
-        email: inviteEmail.trim(),
-      });
-
-      // Refresh road trip data to get updated members list
-      const response = await api.get(`/roadtrips/${id}`);
-      setRoadTrip(response.data);
-
-      // Reset form
+      await inviteMember.mutateAsync(inviteEmail);
       setInviteEmail("");
-      setInviteError(null);
       setShowInvite(false);
     } catch (error) {
-      const axiosError = error as AxiosError<{ error: string }>;
-      setInviteError(
-        axiosError.response?.data?.error || "Failed to invite member"
-      );
+      console.error("Failed to invite member:", error);
     }
   };
 
   const handleRemoveMember = async (userId: string) => {
-    if (!roadTrip || !isOwner) return;
+    if (!roadTrip?.isOwner) return;
 
     try {
-      await api.delete(`/roadtrips/${roadTrip.id}/members/${userId}`);
-
-      // Refresh road trip data
-      const response = await api.get(`/roadtrips/${id}`);
-      setRoadTrip(response.data);
+      await removeMember.mutateAsync(userId);
     } catch (error) {
       console.error("Failed to remove member:", error);
     }
   };
 
-  if (!roadTrip || !sessionId) {
+  if (isLoading || !roadTrip || !sessionId) {
     return <div className="h-screen bg-zinc-900 text-zinc-200">Loading...</div>;
   }
 
@@ -227,7 +144,7 @@ const RoadTripPage = () => {
                 >
                   {member.name[0]}
                 </div>
-                {isOwner && member.id !== session?.user?.id && (
+                {roadTrip.isOwner && member.id !== session?.user?.id && (
                   <button
                     onClick={() => handleRemoveMember(member.id)}
                     className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 bg-red-500 rounded-full items-center justify-center"
@@ -253,12 +170,18 @@ const RoadTripPage = () => {
               placeholder="Enter email to invite"
               className="bg-zinc-900 border-zinc-700"
             />
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              Invite
+            <Button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={inviteMember.isPending}
+            >
+              {inviteMember.isPending ? "Inviting..." : "Invite"}
             </Button>
           </form>
-          {inviteError && (
-            <p className="mt-2 text-red-400 text-sm">{inviteError}</p>
+          {inviteMember.error && (
+            <p className="mt-2 text-red-400 text-sm">
+              {inviteMember.error.message || "Failed to invite member"}
+            </p>
           )}
         </div>
       )}
