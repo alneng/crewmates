@@ -31,15 +31,6 @@ const DashboardPage: React.FC = () => {
     new Map()
   );
 
-  // Handle sorting option change
-  const handleSortOption = (option: string) => {
-    if (option === "Sort by oldest") {
-      sortByOldest(roadTrips);
-    } else if (option === "Sort by recent") {
-      sortByRecent(roadTrips);
-    }
-  };
-
   // Sort the data by oldest (ascending)
   const sortByOldest = (roadTrips: RoadTrip[]) => {
     const sortedRoadTrips = [...roadTrips].sort(
@@ -114,13 +105,13 @@ const DashboardPage: React.FC = () => {
                   <DropdownMenuContent className="bg-zinc-800" align="start">
                     <DropdownMenuItem
                       className="text-white focus:bg-zinc-700 focus:text-white"
-                      onClick={() => handleSortOption("Sort by recent")}
+                      onClick={() => sortByRecent(roadTrips)}
                     >
                       Recent
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-white  focus:bg-zinc-700 focus:text-white"
-                      onClick={() => handleSortOption("Sort by oldest")}
+                      onClick={() => sortByOldest(roadTrips)}
                     >
                       Oldest
                     </DropdownMenuItem>
