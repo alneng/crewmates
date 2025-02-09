@@ -93,7 +93,7 @@ export const RoadTripPage = () => {
       <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="flex items-center text-zinc-400 hover:text-zinc-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
