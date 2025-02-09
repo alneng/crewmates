@@ -4,6 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CarIcon, PlusCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 interface RoadTrip {
   id: string;
@@ -111,37 +119,29 @@ const DashboardPage: React.FC = () => {
           {roadTrips.length > 0 ? (
             <div className="relative inline-block text-left">
               {/* Button to toggle dropdown */}
-              <button
-                type="button"
-                onClick={toggleDropdown}
-                className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-md"
-              >
-                {selectedOption}
-              </button>
               {/* Dropdown menu */}
-              <div className="absolute">
-                {isOpen && (
-                  <div className="right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                    <ul className="py-1">
-                      <li>
-                        <button
-                          onClick={() => handleSortOption("Sort by oldest")}
-                          className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
-                        >
-                          Oldest
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          onClick={() => handleSortOption("Sort by recent")}
-                          className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
-                        >
-                          Recent
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
-                )}
+              <div className="">
+                {
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
+                      Sort by
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-zinc-800" align="start">
+                      <DropdownMenuItem
+                        className="text-white focus:bg-zinc-700 focus:text-white"
+                        onClick={() => handleSortOption("Sort by recent")}
+                      >
+                        Recent
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-white  focus:bg-zinc-700 focus:text-white"
+                        onClick={() => handleSortOption("Sort by oldest")}
+                      >
+                        Oldest
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
               </div>
             </div>
           ) : (
