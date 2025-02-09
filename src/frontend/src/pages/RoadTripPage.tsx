@@ -124,10 +124,10 @@ export const RoadTripPage = () => {
                 Invite
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md">
+            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md border-zinc-800">
               <DialogHeader>
                 <DialogTitle>Invite a Member</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-zinc-400">
                   Invite someone to collaborate on this road trip.
                 </DialogDescription>
               </DialogHeader>
@@ -166,7 +166,7 @@ export const RoadTripPage = () => {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="bg-zinc-300 hover:bg-zinc-700"
+                    className="bg-zinc-300 hover:bg-zinc-700 focus:outline-none"
                   >
                     Close
                   </Button>
@@ -186,10 +186,10 @@ export const RoadTripPage = () => {
                 Share
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md">
+            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md border-zinc-800">
               <DialogHeader>
                 <DialogTitle>Share link</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-zinc-400">
                   Anyone with this link can join this road trip planning
                   session.
                 </DialogDescription>
@@ -221,7 +221,7 @@ export const RoadTripPage = () => {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="bg-zinc-300 hover:bg-zinc-700"
+                    className="bg-zinc-300 hover:bg-zinc-700 focus:outline-none"
                   >
                     Close
                   </Button>
