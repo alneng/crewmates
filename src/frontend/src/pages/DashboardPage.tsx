@@ -64,7 +64,6 @@ const DashboardPage: React.FC = () => {
             <h1 className="text-2xl font-bold mr-2">My Road Trips</h1>
             <CarIcon />
           </div>
-
           <Link to="/roadtrips/new">
             <Button className="bg-blue-600 hover:bg-blue-700">
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -138,15 +137,17 @@ const DashboardPage: React.FC = () => {
                   No road trips have been created.{" "}
                   <SunIcon className="text-yellow-200 size-10" />
                 </div>
-                <div>Get started on your journey by creating one </div>
-                {<span className="font-bold">now!</span>}
+                <div>
+                  Get started on your journey by creating one{" "}
+                  {<b className="text-yellow-200">now!</b>}
+                </div>
                 <div className="flex items-center p-3">
                   <CarIcon className="" />
                   .................
                   <CarIcon className="" />
                   ..........................
                   <CarIcon className="" />
-                  .....................
+                  ..................
                 </div>
               </div>
             </div>
