@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -35,11 +35,14 @@ interface Props {
 }
 
 export const WaypointList = ({
+  socket,
   waypoints,
   onUpdate,
   onDelete,
   onAdd,
 }: Props) => {
+  // For now we're not using dynamic route info data so no need for state
+
   const orderedWaypoints = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
     const mapped = sorted.map((wp, index) => ({
@@ -48,13 +51,13 @@ export const WaypointList = ({
       isEndpoint: index === 0 || index === sorted.length - 1,
     }));
 
+    // If there are fewer than 2 points, use dummy endpoints.
     if (mapped.length < 2) {
       return [
         { id: "start", name: "", isEndpoint: true },
         { id: "end", name: "", isEndpoint: true },
       ];
     }
-
     return mapped;
   }, [waypoints]);
 
@@ -63,9 +66,8 @@ export const WaypointList = ({
       return;
 
     const newOrder = result.destination.index;
-
     try {
-      // Optimistically update the UI
+      // Optimistic reordering of waypoints
       const newWaypoints = Array.from(orderedWaypoints);
       const [removed] = newWaypoints.splice(result.source.index, 1);
       newWaypoints.splice(result.destination.index, 0, removed);
@@ -90,7 +92,6 @@ export const WaypointList = ({
     waypointId: string
   ) => {
     if (!coordinates) return;
-
     try {
       if (waypointId === "start" || waypointId === "end") {
         await onAdd({
@@ -114,7 +115,6 @@ export const WaypointList = ({
     if (orderedWaypoints.length <= 2) return;
     const waypoint = orderedWaypoints.find((wp) => wp.id === waypointId);
     if (waypoint?.isEndpoint) return;
-
     await onDelete(waypointId);
   };
 
@@ -163,7 +163,7 @@ export const WaypointList = ({
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             className={cn(
-                              "relative flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group",
+                              "relative flex flex-col gap-1 p-3 rounded-lg transition-all duration-200 group",
                               {
                                 "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20":
                                   snapshot.isDragging,
@@ -173,29 +173,35 @@ export const WaypointList = ({
                               }
                             )}
                           >
-                            <div className="flex items-center gap-2">
+                            {/* Row 1: Drag handle, icon, & hardcoded route info for non-starting points */}
+                            <div className="flex items-center gap-3">
                               <div
                                 {...provided.dragHandleProps}
-                                className={cn(
-                                  "p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors",
-                                  { "bg-zinc-700/50": snapshot.isDragging }
-                                )}
+                                className="p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors"
                               >
                                 <GripVertical className="h-4 w-4 text-zinc-400" />
                               </div>
 
-                              <div className="flex-shrink-0">
-                                {index === 0 ? (
-                                  <MapPin className="h-5 w-5 text-emerald-500" />
-                                ) : index === orderedWaypoints.length - 1 ? (
-                                  <Flag className="h-5 w-5 text-rose-500" />
-                                ) : (
-                                  <CircleDot className="h-5 w-5 text-indigo-500" />
+                              <div className="flex items-center gap-2">
+                                <div className="flex-shrink-0">
+                                  {index === 0 ? (
+                                    <MapPin className="h-5 w-5 text-emerald-500" />
+                                  ) : index === orderedWaypoints.length - 1 ? (
+                                    <Flag className="h-5 w-5 text-rose-500" />
+                                  ) : (
+                                    <CircleDot className="h-5 w-5 text-indigo-500" />
+                                  )}
+                                </div>
+                                {index !== 0 && (
+                                  <div className="text-[11px] text-zinc-500">
+                                    4.2 mi • 5 min
+                                  </div>
                                 )}
                               </div>
                             </div>
 
-                            <div className="flex-1">
+                            {/* Row 2: Waypoint input beneath route/duration info */}
+                            <div className="mt-1">
                               <WaypointInput
                                 placeholder={
                                   index === 0
@@ -235,6 +241,18 @@ export const WaypointList = ({
                 )}
               </Droppable>
             </DragDropContext>
+
+            {/* Total Summary Section below the list */}
+            <div className="mt-4 p-4 border-t border-zinc-800 text-xs text-zinc-400">
+              <div className="flex justify-between">
+                <span>Total Distance:</span>
+                <span>8.4 mi</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total Duration:</span>
+                <span>10 min</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
