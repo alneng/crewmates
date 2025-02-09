@@ -109,7 +109,7 @@ const DashboardPage: React.FC = () => {
                     Recent
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    className="text-white  focus:bg-zinc-700 focus:text-white"
+                    className="text-white focus:bg-zinc-700 focus:text-white"
                     onClick={() => sortByOldest(roadTrips)}
                   >
                     Oldest
