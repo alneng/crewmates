@@ -8,8 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 
@@ -33,23 +31,13 @@ const DashboardPage: React.FC = () => {
     new Map()
   );
 
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [selectedOption, setSelectedOption] = useState<string>("Sort by");
-
-  // Toggle the dropdown menu
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-  };
-
   // Handle sorting option change
   const handleSortOption = (option: string) => {
-    setSelectedOption(option);
     if (option === "Sort by oldest") {
       sortByOldest(roadTrips);
     } else if (option === "Sort by recent") {
       sortByRecent(roadTrips);
     }
-    setIsOpen(false); // Close dropdown after selection
   };
 
   // Sort the data by oldest (ascending)
