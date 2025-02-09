@@ -5,11 +5,12 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { useSocket } from "../hooks/socket.hooks";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { WaypointInput } from "./WaypointInput";
 import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
+import { Socket } from "socket.io-client";
+
 
 interface Waypoint {
   id: string;
@@ -21,6 +22,7 @@ interface Waypoint {
 
 interface Props {
   sessionId: string;
+  socket: Socket | null;
   waypoints: Waypoint[];
   onUpdate: (waypointId: string, updates: Partial<Waypoint>) => Promise<void>;
   onDelete: (waypointId: string) => Promise<void>;
@@ -32,13 +34,12 @@ interface Props {
 }
 
 export const WaypointList = ({
-  sessionId,
+  socket,
   waypoints,
   onUpdate,
   onDelete,
   onAdd,
 }: Props) => {
-  const socket = useSocket(sessionId);
   const [orderedWaypoints, setOrderedWaypoints] = useState<
     Array<{
       id: string;
@@ -68,6 +69,38 @@ export const WaypointList = ({
     }
   }, [waypoints]);
 
+  // Listen for waypoint updates from other users
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleWaypointUpdated = (data: {
+      id: string;
+      order?: number;
+      name?: string;
+    }) => {
+      if (data.order !== undefined) {
+        setOrderedWaypoints((prev) => {
+          const reordered = [...prev];
+          const sourceIndex = reordered.findIndex((wp) => wp.id === data.id);
+          if (sourceIndex === -1) return prev;
+
+          const [movedItem] = reordered.splice(sourceIndex, 1);
+          reordered.splice(data.order ?? 0, 0, movedItem);
+
+          return reordered.map((wp, index) => ({
+            ...wp,
+            isEndpoint: index === 0 || index === reordered.length - 1,
+          }));
+        });
+      }
+    };
+
+    socket.on("waypoint-updated", handleWaypointUpdated);
+    return () => {
+      socket.off("waypoint-updated", handleWaypointUpdated);
+    };
+  }, [socket]);
+
   const handleDragEnd = useCallback(
     async (result: DropResult) => {
       if (!result.destination) return;
@@ -86,11 +119,9 @@ export const WaypointList = ({
 
       // Update backend
       const waypointId = result.draggableId;
-      const newOrder = result.destination.index;
-      await onUpdate(waypointId, { order: newOrder });
-      socket?.emit("waypoint-update", { id: waypointId, order: newOrder });
+      await onUpdate(waypointId, { order: result.destination.index });
     },
-    [orderedWaypoints, onUpdate, socket]
+    [orderedWaypoints, onUpdate]
   );
 
   const handleAddStop = () => {
@@ -126,12 +157,6 @@ export const WaypointList = ({
         latitude: coordinates.lat,
         longitude: coordinates.lng,
       });
-
-      socket?.emit("waypoint-added", {
-        name: value,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-      });
     } catch (error) {
       console.error("Failed to add waypoint:", error);
     }
@@ -146,7 +171,6 @@ export const WaypointList = ({
     if (waypoint?.isEndpoint) return;
 
     await onDelete(waypointId);
-    socket?.emit("waypoint-deleted", { id: waypointId });
 
     setOrderedWaypoints(orderedWaypoints.filter((wp) => wp.id !== waypointId));
   };

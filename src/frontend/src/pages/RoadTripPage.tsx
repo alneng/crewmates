@@ -5,6 +5,7 @@ import { WaypointList } from "@/components/WaypointList";
 import { Button } from "@/components/ui/button";
 import { Share2, ArrowLeft, Users, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useSocket } from "@/hooks/socket.hooks";
 import {
   useRoadTrip,
   useAddWaypoint,
@@ -22,15 +23,16 @@ const RoadTripPage = () => {
   const sessionId = searchParams.get("session");
   const navigate = useNavigate();
   const { data: session } = useSession();
+  const socket = useSocket(sessionId);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
   // Queries and Mutations
   const { data: roadTrip, isLoading } = useRoadTrip(id);
-  const addWaypoint = useAddWaypoint(id);
-  const updateWaypoint = useUpdateWaypoint(id);
-  const deleteWaypoint = useDeleteWaypoint(id);
+  const addWaypoint = useAddWaypoint(id, socket);
+  const updateWaypoint = useUpdateWaypoint(id, socket);
+  const deleteWaypoint = useDeleteWaypoint(id, socket);
   const inviteMember = useInviteMember(id);
   const removeMember = useRemoveMember(id);
 
@@ -44,7 +46,7 @@ const RoadTripPage = () => {
 
   const handleUpdateWaypoint = async (
     waypointId: string,
-    updates: Partial<WaypointInput>
+    updates: Partial<WaypointInput & { order: number }>
   ) => {
     try {
       await updateWaypoint.mutateAsync({ waypointId, updates });
@@ -196,6 +198,7 @@ const RoadTripPage = () => {
             onUpdate={handleUpdateWaypoint}
             onDelete={handleDeleteWaypoint}
             onAdd={handleAddWaypoint}
+            socket={socket}
           />
         </div>
 
@@ -204,6 +207,7 @@ const RoadTripPage = () => {
           <CollaborativeMap
             sessionId={sessionId}
             waypoints={roadTrip.waypoints}
+            socket={socket}
           />
         </div>
       </div>

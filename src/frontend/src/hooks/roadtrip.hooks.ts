@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Socket } from "socket.io-client";
 import api from "@/lib/axios";
 import { useSession } from "@/lib/auth-client";
 
@@ -48,7 +49,7 @@ export const useRoadTrip = (id: string) => {
 };
 
 // Add waypoint mutation
-export const useAddWaypoint = (roadTripId: string) => {
+export const useAddWaypoint = (roadTripId: string, socket: Socket | null) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -61,16 +62,29 @@ export const useAddWaypoint = (roadTripId: string) => {
       });
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: roadTripKeys.detail(roadTripId),
       });
+
+      if (socket) {
+        socket.emit("waypoint-added", {
+          id: data.id,
+          name: data.name,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          order: data.order,
+        });
+      }
     },
   });
 };
 
 // Update waypoint mutation
-export const useUpdateWaypoint = (roadTripId: string) => {
+export const useUpdateWaypoint = (
+  roadTripId: string,
+  socket: Socket | null
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -87,26 +101,41 @@ export const useUpdateWaypoint = (roadTripId: string) => {
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: roadTripKeys.detail(roadTripId),
       });
+
+      if (socket) {
+        socket.emit("waypoint-update", {
+          id: variables.waypointId,
+          ...variables.updates,
+        });
+      }
     },
   });
 };
 
 // Delete waypoint mutation
-export const useDeleteWaypoint = (roadTripId: string) => {
+export const useDeleteWaypoint = (
+  roadTripId: string,
+  socket: Socket | null
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (waypointId: string) => {
       await api.delete(`/roadtrips/${roadTripId}/waypoints/${waypointId}`);
+      return waypointId;
     },
-    onSuccess: () => {
+    onSuccess: (waypointId) => {
       queryClient.invalidateQueries({
         queryKey: roadTripKeys.detail(roadTripId),
       });
+
+      if (socket) {
+        socket.emit("waypoint-deleted", { id: waypointId });
+      }
     },
   });
 };
