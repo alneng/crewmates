@@ -97,27 +97,25 @@ const DashboardPage: React.FC = () => {
         <div className="mb-5">
           {roadTrips && (
             <div>
-              {
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
-                    Sort by
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-zinc-800" align="start">
-                    <DropdownMenuItem
-                      className="text-white focus:bg-zinc-700 focus:text-white"
-                      onClick={() => sortByRecent(roadTrips)}
-                    >
-                      Recent
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-white  focus:bg-zinc-700 focus:text-white"
-                      onClick={() => sortByOldest(roadTrips)}
-                    >
-                      Oldest
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              }
+              <DropdownMenu>
+                <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
+                  Sort by
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-800" align="start">
+                  <DropdownMenuItem
+                    className="text-white focus:bg-zinc-700 focus:text-white"
+                    onClick={() => sortByRecent(roadTrips)}
+                  >
+                    Recent
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-white  focus:bg-zinc-700 focus:text-white"
+                    onClick={() => sortByOldest(roadTrips)}
+                  >
+                    Oldest
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
