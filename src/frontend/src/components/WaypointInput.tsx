@@ -77,14 +77,11 @@ export const WaypointInput = ({
     center: [number, number];
   }) => {
     const newValue = suggestion.place_name;
-    setInputValue(newValue);
+    setInputValue(newValue); // Local state update
 
     // Mapbox returns coordinates as [longitude, latitude]
     const [lng, lat] = suggestion.center;
-    onChange(newValue, { lat, lng });
-
-    setSuggestions([]);
-    setShowSuggestions(false);
+    onChange(newValue, { lat, lng }); // Parent notification
   };
 
   useEffect(() => {

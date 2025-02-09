@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -34,22 +34,12 @@ interface Props {
 }
 
 export const WaypointList = ({
-  socket,
   waypoints,
   onUpdate,
   onDelete,
   onAdd,
 }: Props) => {
-  const [orderedWaypoints, setOrderedWaypoints] = useState<
-    Array<{
-      id: string;
-      name: string;
-      isEndpoint: boolean;
-    }>
-  >([]);
-
-  useEffect(() => {
-    // Initialize ordered waypoints from props
+  const orderedWaypoints = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
     const mapped = sorted.map((wp, index) => ({
       id: wp.id,
@@ -57,84 +47,29 @@ export const WaypointList = ({
       isEndpoint: index === 0 || index === sorted.length - 1,
     }));
 
-    // Ensure at least 2 waypoints
     if (mapped.length < 2) {
-      const defaults = [
+      return [
         { id: "start", name: "", isEndpoint: true },
         { id: "end", name: "", isEndpoint: true },
       ];
-      setOrderedWaypoints(defaults);
-    } else {
-      setOrderedWaypoints(mapped);
     }
+
+    return mapped;
   }, [waypoints]);
 
-  // Listen for waypoint updates from other users
-  useEffect(() => {
-    if (!socket) return;
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
 
-    const handleWaypointUpdated = (data: {
-      id: string;
-      order?: number;
-      name?: string;
-    }) => {
-      if (data.order !== undefined) {
-        setOrderedWaypoints((prev) => {
-          const reordered = [...prev];
-          const sourceIndex = reordered.findIndex((wp) => wp.id === data.id);
-          if (sourceIndex === -1) return prev;
-
-          const [movedItem] = reordered.splice(sourceIndex, 1);
-          reordered.splice(data.order ?? 0, 0, movedItem);
-
-          return reordered.map((wp, index) => ({
-            ...wp,
-            isEndpoint: index === 0 || index === reordered.length - 1,
-          }));
-        });
-      }
-    };
-
-    socket.on("waypoint-updated", handleWaypointUpdated);
-    return () => {
-      socket.off("waypoint-updated", handleWaypointUpdated);
-    };
-  }, [socket]);
-
-  const handleDragEnd = useCallback(
-    async (result: DropResult) => {
-      if (!result.destination) return;
-
-      const reorderedWaypoints = Array.from(orderedWaypoints);
-      const [reorderedItem] = reorderedWaypoints.splice(result.source.index, 1);
-      reorderedWaypoints.splice(result.destination.index, 0, reorderedItem);
-
-      // Update isEndpoint flags
-      const updatedWaypoints = reorderedWaypoints.map((wp, index) => ({
-        ...wp,
-        isEndpoint: index === 0 || index === reorderedWaypoints.length - 1,
-      }));
-
-      setOrderedWaypoints(updatedWaypoints);
-
-      // Update backend
-      const waypointId = result.draggableId;
-      await onUpdate(waypointId, { order: result.destination.index });
-    },
-    [orderedWaypoints, onUpdate]
-  );
+    const newOrder = result.destination.index;
+    await onUpdate(result.draggableId, { order: newOrder });
+  };
 
   const handleAddStop = () => {
-    const newWaypoint = {
-      id: Math.random().toString(),
+    onAdd({
       name: "",
-      isEndpoint: false,
-    };
-
-    // Insert the new waypoint before the last waypoint
-    const newWaypoints = [...orderedWaypoints];
-    newWaypoints.splice(orderedWaypoints.length - 1, 0, newWaypoint);
-    setOrderedWaypoints(newWaypoints);
+      latitude: waypoints[0].latitude,
+      longitude: waypoints[0].longitude,
+    });
   };
 
   const handleLocationSelect = async (
@@ -142,37 +77,33 @@ export const WaypointList = ({
     coordinates: { lat: number; lng: number } | undefined,
     waypointId: string
   ) => {
-    // Update local state immediately for responsive UI
-    setOrderedWaypoints(
-      orderedWaypoints.map((wp) =>
-        wp.id === waypointId ? { ...wp, name: value } : wp
-      )
-    );
-
-    if (!coordinates) return; // Only update backend when coordinates are available
+    if (!coordinates) return;
 
     try {
-      await onAdd({
-        name: value,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-      });
+      if (waypointId === "start" || waypointId === "end") {
+        await onAdd({
+          name: value,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
+        });
+      } else {
+        await onUpdate(waypointId, {
+          name: value,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
+        });
+      }
     } catch (error) {
-      console.error("Failed to add waypoint:", error);
+      console.error("Failed to update waypoint:", error);
     }
   };
 
   const handleRemoveStop = async (waypointId: string) => {
-    // Don't allow removing if we only have 2 waypoints
     if (orderedWaypoints.length <= 2) return;
-
-    // Don't allow removing endpoints
     const waypoint = orderedWaypoints.find((wp) => wp.id === waypointId);
     if (waypoint?.isEndpoint) return;
 
     await onDelete(waypointId);
-
-    setOrderedWaypoints(orderedWaypoints.filter((wp) => wp.id !== waypointId));
   };
 
   return (
@@ -200,6 +131,7 @@ export const WaypointList = ({
                 Add another stop
               </span>
             </Button>
+
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="waypoints">
                 {(provided) => (
@@ -237,24 +169,16 @@ export const WaypointList = ({
                                   { "bg-zinc-700/50": snapshot.isDragging }
                                 )}
                               >
-                                <GripVertical className="h-4 w-4 text-zinc-400 group-hover:text-zinc-300" />
+                                <GripVertical className="h-4 w-4 text-zinc-400" />
                               </div>
+
                               <div className="flex-shrink-0">
                                 {index === 0 ? (
-                                  <div className="relative">
-                                    <MapPin className="h-5 w-5 text-emerald-500" />
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                                  </div>
+                                  <MapPin className="h-5 w-5 text-emerald-500" />
                                 ) : index === orderedWaypoints.length - 1 ? (
-                                  <div className="relative">
-                                    <Flag className="h-5 w-5 text-rose-500" />
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
-                                  </div>
+                                  <Flag className="h-5 w-5 text-rose-500" />
                                 ) : (
-                                  <div className="relative">
-                                    <CircleDot className="h-5 w-5 text-indigo-500" />
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" />
-                                  </div>
+                                  <CircleDot className="h-5 w-5 text-indigo-500" />
                                 )}
                               </div>
                             </div>
