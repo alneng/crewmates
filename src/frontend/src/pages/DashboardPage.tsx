@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CarIcon, PlusCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
-import { transformDate } from "@/lib/utils";
 
 interface RoadTrip {
   id: string;
@@ -88,7 +87,10 @@ const DashboardPage: React.FC = () => {
                           {trip.owner.name}
                         </span>
                       }
-                      on {transformDate(trip.createdAt)}
+                      on{" "}
+                      {new Date(trip.createdAt)
+                        .toLocaleString()
+                        .substring(0, 8)}
                     </div>
                   </div>
                   {!activeSessionIds.has(trip.id) ? (
