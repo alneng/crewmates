@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -9,10 +9,10 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { WaypointInput } from "./WaypointInput";
 import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
-import { Socket } from "socket.io-client";
-import { cn } from "@/lib/utils";
+import { cn, metersToMiles, secondsToHoursMinutes } from "@/lib/utils";
 import { toast } from "sonner";
 import React from "react";
+import { RouteLeg } from "./CollaborativeMap";
 
 interface Waypoint {
   id: string;
@@ -23,9 +23,8 @@ interface Waypoint {
 }
 
 interface Props {
-  sessionId: string;
-  socket: Socket | null;
   waypoints: Waypoint[];
+  waypointLegs: RouteLeg[];
   onUpdate: (waypointId: string, updates: Partial<Waypoint>) => Promise<void>;
   onDelete: (waypointId: string) => Promise<void>;
   onAdd: (waypoint: {
@@ -36,13 +35,22 @@ interface Props {
 }
 
 export const WaypointList = ({
-  socket,
   waypoints,
+  waypointLegs,
   onUpdate,
   onDelete,
   onAdd,
 }: Props) => {
-  // For now we're not using dynamic route info data so no need for state
+  const waypointTotals = useMemo(() => {
+    return waypointLegs.reduce(
+      (acc, leg) => {
+        acc.distance += leg.distance;
+        acc.duration += leg.duration;
+        return acc;
+      },
+      { distance: 0, duration: 0 }
+    );
+  }, [waypointLegs]);
 
   const orderedWaypoints = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
@@ -82,8 +90,8 @@ export const WaypointList = ({
   const handleAddStop = useCallback(() => {
     onAdd({
       name: "",
-      latitude: waypoints[0].latitude,
-      longitude: waypoints[0].longitude,
+      latitude: waypoints[waypoints.length - 1].latitude,
+      longitude: waypoints[waypoints.length - 1].longitude,
     });
   }, [onAdd, waypoints]);
 
@@ -213,14 +221,25 @@ export const WaypointList = ({
                             </div>
                           )}
                         </Draggable>
-                        {/* Route info separator between cards (except after the last card) */}
-                        {index < orderedWaypoints.length - 1 && (
-                          <div className="h-6 flex items-center justify-center text-xs text-zinc-400">
-                            <span>4.2 mi</span>
-                            <span className="mx-1">•</span>
-                            <span>5 min</span>
-                          </div>
-                        )}
+                        {index < orderedWaypoints.length - 1 &&
+                          waypointLegs[index] && (
+                            <div className="h-6 flex items-center justify-center text-xs text-zinc-400">
+                              <span>
+                                {metersToMiles(
+                                  waypointLegs[index].distance
+                                ).toFixed(1)}{" "}
+                                mi
+                              </span>
+                              <span className="mx-1">•</span>
+                              <span>
+                                {
+                                  secondsToHoursMinutes(
+                                    waypointLegs[index].duration
+                                  ).formatted
+                                }
+                              </span>
+                            </div>
+                          )}
                       </React.Fragment>
                     ))}
                     {provided.placeholder}
@@ -233,11 +252,15 @@ export const WaypointList = ({
             <div className="mt-4 p-4 border-t border-zinc-800 text-xs text-zinc-400">
               <div className="flex justify-between">
                 <span>Total Distance:</span>
-                <span>8.4 mi</span>
+                <span>
+                  {metersToMiles(waypointTotals.distance).toFixed(1)} mi
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Total Duration:</span>
-                <span>10 min</span>
+                <span>
+                  {secondsToHoursMinutes(waypointTotals.duration).formatted}
+                </span>
               </div>
             </div>
           </div>
