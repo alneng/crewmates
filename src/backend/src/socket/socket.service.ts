@@ -36,7 +36,9 @@ export class SocketService {
       return;
     }
 
-    // Join session room
+    // Store the sessionId when joining
+    let currentSessionId: string | null = null;
+
     socket.on("join-session", async (sessionId: string) => {
       const session = await prisma.liveSession.findUnique({
         where: { id: sessionId },
@@ -65,8 +67,8 @@ export class SocketService {
         return;
       }
 
+      currentSessionId = sessionId;
       await socket.join(sessionId);
-
       socket.to(sessionId).emit("user-joined", { userId, name });
     });
 
@@ -98,9 +100,10 @@ export class SocketService {
     });
 
     socket.on("disconnect", () => {
-      const sessionId = Array.from(socket.rooms)[1];
-      if (sessionId) {
-        socket.to(sessionId).emit("user-left", { userId, name });
+      if (currentSessionId) {
+        socket.to(currentSessionId).emit("user-left", { userId, name });
+        // Broadcast to all clients in the session that this user has left
+        this.io.to(currentSessionId).emit("user-left", { userId, name });
       }
     });
   }

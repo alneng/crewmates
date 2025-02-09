@@ -162,8 +162,18 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
     const map = mapInstance.current;
     if (!map) return;
 
+    // Remove markers for disconnected users
     cursorMarkersRef.current.forEach((marker, userId) => {
       if (!collaborators.has(userId)) {
+        marker.remove();
+        cursorMarkersRef.current.delete(userId);
+      }
+    });
+
+    // Cleanup for any stale markers
+    const connectedUserIds = Array.from(collaborators.keys());
+    cursorMarkersRef.current.forEach((marker, userId) => {
+      if (!connectedUserIds.includes(userId)) {
         marker.remove();
         cursorMarkersRef.current.delete(userId);
       }

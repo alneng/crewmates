@@ -32,7 +32,9 @@ export const useCollaborators = (socket: Socket | null) => {
     const handleUserLeft = ({ userId }: { userId: string; name: string }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
-        next.delete(userId);
+        if (next.has(userId)) {
+          next.delete(userId);
+        }
         return next;
       });
     };
