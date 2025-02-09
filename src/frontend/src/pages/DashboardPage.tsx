@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
+import { transformDate } from "@/lib/utils";
 
 interface RoadTrip {
   id: string;
@@ -69,56 +70,68 @@ const DashboardPage: React.FC = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {roadTrips.map((trip) => (
-            <Card key={trip.id} className="p-4 bg-zinc-800 border-zinc-700">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-100">
-                    {trip.name}
-                  </h2>
-                  <p className="text-sm text-zinc-400">
-                    Created by {trip.owner.name}
-                  </p>
-                </div>
-                {!activeSessionIds.has(trip.id) ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCreateSession(trip.id)}
-                    className="border-zinc-600 bg-zinc-700 hover:bg-zinc-600"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                ) : (
-                  <Link
-                    to={`/roadtrips/${trip.id}?session=${activeSessionIds.get(
-                      trip.id
-                    )}`}
-                  >
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Join Active Session
-                    </Button>
-                  </Link>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {trip.members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="px-2 py-1 bg-zinc-700 rounded-full text-sm text-zinc-200"
-                  >
-                    {member.name}
+          {roadTrips.length > 0 ? (
+            roadTrips.map((trip) => (
+              <Card key={trip.id} className="p-4 bg-zinc-800 border-zinc-700">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-zinc-100">
+                      {trip.name}
+                    </h2>
+                    <div className="flex justify-center text-sm text-zinc-400">
+                      Created by {trip.owner.name} on{" "}
+                      {transformDate(trip.createdAt)}
+                    </div>
                   </div>
-                ))}
+                  {!activeSessionIds.has(trip.id) ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCreateSession(trip.id)}
+                      className="border-zinc-600 bg-zinc-700 hover:bg-zinc-600"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  ) : (
+                    <Link
+                      to={`/roadtrips/${trip.id}?session=${activeSessionIds.get(
+                        trip.id
+                      )}`}
+                    >
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Join Active Session
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {trip.members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="px-2 py-1 bg-zinc-700 rounded-full text-sm text-zinc-200"
+                    >
+                      {member.name}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="text-white place-items-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3">
+              <div>
+                <p className="text-center">
+                  No road trips have been created! Get started on your journey
+                  by creating one now!
+                </p>
               </div>
-            </Card>
-          ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
