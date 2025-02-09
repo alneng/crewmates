@@ -79,8 +79,13 @@ const DashboardPage: React.FC = () => {
                       {trip.name}
                     </h2>
                     <div className="flex justify-center text-sm text-zinc-400">
-                      Created by {trip.owner.name} on{" "}
-                      {transformDate(trip.createdAt)}
+                      Created by
+                      {
+                        <span className="font-extrabold mx-1">
+                          {trip.owner.name}
+                        </span>
+                      }{" "}
+                      on {transformDate(trip.createdAt)}
                     </div>
                   </div>
                   {!activeSessionIds.has(trip.id) ? (
@@ -102,9 +107,9 @@ const DashboardPage: React.FC = () => {
                       <Button
                         variant="default"
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-blue-700 hover:bg-blue-800"
                       >
-                        Join Active Session
+                        Join Session
                       </Button>
                     </Link>
                   )}
