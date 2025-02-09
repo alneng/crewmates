@@ -125,15 +125,6 @@ export const RoadTripPage = () => {
                   {collaborator.name[0]}
                 </AvatarFallback>
               </Avatar>
-              // <div
-              //   key={collaborator.userId}
-              //   className="relative"
-              //   title={collaborator.name}
-              // >
-              //   <div className="w-8 h-8 rounded-full bg-purple-600 border-2 border-zinc-700 flex items-center justify-center text-sm font-medium">
-              //     {collaborator.name[0]}
-              //   </div>
-              // </div>
             ))}
           </div>
         </div>
