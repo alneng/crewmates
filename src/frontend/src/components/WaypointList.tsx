@@ -288,7 +288,7 @@ export const WaypointList = ({
           </Droppable>
         </DragDropContext>
 
-        {orderedWaypoints.length < 8 && (
+        {(
           <Button
             variant="ghost"
             onClick={handleAddStop}
