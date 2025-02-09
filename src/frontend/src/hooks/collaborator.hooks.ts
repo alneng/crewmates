@@ -1,5 +1,7 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Socket } from "socket.io-client";
+import { roadTripKeys } from "./roadtrip.hooks";
 
 interface Collaborator {
   userId: string;
@@ -92,4 +94,24 @@ export const useCollaborators = (socket: Socket | null) => {
   }, [socket]);
 
   return collaborators;
+};
+
+export const useWaypointSync = (socket: Socket | null) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleWaypointUpdate = () => {
+      queryClient.invalidateQueries({
+        queryKey: roadTripKeys.all,
+      });
+    };
+
+    socket.on("waypoint-updated", handleWaypointUpdate);
+
+    return () => {
+      socket.off("waypoint-updated", handleWaypointUpdate);
+    };
+  }, [queryClient, socket]);
 };

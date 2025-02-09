@@ -24,7 +24,7 @@ export interface WaypointInput {
 }
 
 // Query key factory
-const roadTripKeys = {
+export const roadTripKeys = {
   all: ["roadtrips"] as const,
   detail: (id: string) => [...roadTripKeys.all, id] as const,
   waypoints: (id: string) => [...roadTripKeys.detail(id), "waypoints"] as const,

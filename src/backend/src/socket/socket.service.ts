@@ -8,11 +8,6 @@ interface CursorPosition {
   longitude: number;
 }
 
-interface WaypointUpdate {
-  id: string;
-  order: number;
-}
-
 export class SocketService {
   private io: Server;
 
@@ -92,11 +87,11 @@ export class SocketService {
     });
 
     // Handle waypoint updates
-    socket.on("waypoint-update", async (data: WaypointUpdate) => {
+    socket.on("waypoint-update", async () => {
       const sessionId = Array.from(socket.rooms)[1];
       if (!sessionId) return;
 
-      socket.to(sessionId).emit("waypoint-updated", data);
+      socket.to(sessionId).emit("waypoint-updated");
     });
 
     socket.on("disconnect", () => {

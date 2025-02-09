@@ -7,7 +7,7 @@ import { WaypointList } from "@/components/WaypointList";
 import { CollaborativeMap } from "@/components/CollaborativeMap";
 import { MemberList } from "@/components/MemberList";
 import { useSocket } from "@/hooks/socket.hooks";
-import { useCollaborators } from "@/hooks/collaborator.hooks";
+import { useCollaborators, useWaypointSync } from "@/hooks/collaborator.hooks";
 import {
   useRoadTrip,
   useAddWaypoint,
@@ -29,6 +29,7 @@ export const RoadTripPage = () => {
   // Socket and collaborators
   const socket = useSocket(sessionId);
   const collaborators = useCollaborators(socket);
+  useWaypointSync(socket);
 
   // Road trip data and mutations
   const { data: roadTrip, isLoading } = useRoadTrip(id!);
@@ -47,6 +48,7 @@ export const RoadTripPage = () => {
     longitude: number;
   }) => {
     await addWaypoint.mutateAsync(waypoint);
+    socket?.emit("waypoint-update");
   };
 
   const handleUpdateWaypoint = async (
@@ -54,10 +56,12 @@ export const RoadTripPage = () => {
     updates: { name?: string; order?: number }
   ) => {
     await updateWaypoint.mutateAsync({ waypointId, updates });
+    socket?.emit("waypoint-update");
   };
 
   const handleDeleteWaypoint = async (waypointId: string) => {
     await deleteWaypoint.mutateAsync(waypointId);
+    socket?.emit("waypoint-update");
   };
 
   const handleInviteMember = async (e: React.FormEvent) => {

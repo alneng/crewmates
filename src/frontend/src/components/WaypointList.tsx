@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -64,13 +64,13 @@ export const WaypointList = ({
     await onUpdate(result.draggableId, { order: newOrder });
   };
 
-  const handleAddStop = () => {
+  const handleAddStop = useCallback(() => {
     onAdd({
       name: "",
       latitude: waypoints[0].latitude,
       longitude: waypoints[0].longitude,
     });
-  };
+  }, [onAdd, waypoints]);
 
   const handleLocationSelect = async (
     value: string,
