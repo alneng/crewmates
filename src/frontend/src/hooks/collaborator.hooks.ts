@@ -4,6 +4,7 @@ import { Socket } from "socket.io-client";
 interface Collaborator {
   userId: string;
   name: string;
+  image?: string;
   cursor?: { latitude: number; longitude: number };
 }
 
@@ -18,18 +19,20 @@ export const useCollaborators = (socket: Socket | null) => {
     const handleUserJoined = ({
       userId,
       name,
+      image,
     }: {
       userId: string;
       name: string;
+      image?: string;
     }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
-        next.set(userId, { userId, name });
+        next.set(userId, { userId, name, image });
         return next;
       });
     };
 
-    const handleUserLeft = ({ userId }: { userId: string; name: string }) => {
+    const handleUserLeft = ({ userId }: { userId: string }) => {
       setCollaborators((prev) => {
         const next = new Map(prev);
         if (next.has(userId)) {
@@ -42,11 +45,13 @@ export const useCollaborators = (socket: Socket | null) => {
     const handleCursorUpdate = ({
       userId,
       name,
+      image,
       latitude,
       longitude,
     }: {
       userId: string;
       name: string;
+      image?: string;
       latitude: number;
       longitude: number;
     }) => {
@@ -56,7 +61,12 @@ export const useCollaborators = (socket: Socket | null) => {
         if (user) {
           next.set(userId, { ...user, cursor: { latitude, longitude } });
         } else {
-          next.set(userId, { userId, name, cursor: { latitude, longitude } });
+          next.set(userId, {
+            userId,
+            name,
+            image,
+            cursor: { latitude, longitude },
+          });
         }
         return next;
       });

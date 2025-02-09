@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router";
 import { useSession } from "@/lib/auth-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/NotFound";
@@ -70,6 +71,7 @@ const App: React.FC = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </QueryClientProvider>
   );
 };
