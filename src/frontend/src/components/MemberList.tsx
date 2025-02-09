@@ -33,7 +33,7 @@ export const MemberList: React.FC<Props> = ({ roadTripId, owner, members }) => {
   };
 
   return (
-    <Card className="h-auto mt-4 bg-zinc-800 border-zinc-700">
+    <Card className="h-auto bg-zinc-800 border-zinc-700">
       <div className="font-semibold p-4 border-b border-zinc-700 text-zinc-200">
         Trip Members
       </div>
