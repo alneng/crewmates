@@ -12,6 +12,7 @@ import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
 import { Socket } from "socket.io-client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import React from "react";
 
 interface Waypoint {
   id: string;
@@ -150,21 +151,16 @@ export const WaypointList = ({
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="space-y-3"
+                    className="space-y-2"
                   >
                     {orderedWaypoints.map((waypoint, index) => (
-                      <div key={`waypoint-container-${waypoint.id}`}>
-                        <Draggable
-                          key={waypoint.id}
-                          draggableId={waypoint.id}
-                          index={index}
-                        >
+                      <React.Fragment key={waypoint.id}>
+                        <Draggable draggableId={waypoint.id} index={index}>
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={cn(
-                                // Added border unconditionally to give every card an outline
                                 "relative p-3 rounded-lg transition-all duration-200 group border border-zinc-800",
                                 {
                                   "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20":
@@ -174,7 +170,6 @@ export const WaypointList = ({
                                 }
                               )}
                             >
-                              {/* Single row layout for all cards */}
                               <div className="flex items-center gap-1">
                                 <div
                                   {...provided.dragHandleProps}
@@ -218,15 +213,15 @@ export const WaypointList = ({
                             </div>
                           )}
                         </Draggable>
-                        {/* Render centered route info separator between cards */}
+                        {/* Route info separator between cards (except after the last card) */}
                         {index < orderedWaypoints.length - 1 && (
-                          <div className="flex justify-center items-center my-1 text-xs text-zinc-400">
+                          <div className="h-6 flex items-center justify-center text-xs text-zinc-400">
                             <span>4.2 mi</span>
                             <span className="mx-1">|</span>
                             <span>5 min</span>
                           </div>
                         )}
-                      </div>
+                      </React.Fragment>
                     ))}
                     {provided.placeholder}
                   </div>
@@ -234,7 +229,7 @@ export const WaypointList = ({
               </Droppable>
             </DragDropContext>
 
-            {/* Total Summary Section */}
+            {/* Total Summary Section below the list */}
             <div className="mt-4 p-4 border-t border-zinc-800 text-xs text-zinc-400">
               <div className="flex justify-between">
                 <span>Total Distance:</span>
