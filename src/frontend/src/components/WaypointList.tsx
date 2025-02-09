@@ -217,7 +217,7 @@ export const WaypointList = ({
                         {index < orderedWaypoints.length - 1 && (
                           <div className="h-6 flex items-center justify-center text-xs text-zinc-400">
                             <span>4.2 mi</span>
-                            <span className="mx-1">|</span>
+                            <span className="mx-1">•</span>
                             <span>5 min</span>
                           </div>
                         )}
