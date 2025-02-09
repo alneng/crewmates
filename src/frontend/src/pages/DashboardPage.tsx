@@ -25,6 +25,43 @@ const DashboardPage: React.FC = () => {
     new Map()
   );
 
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [selectedOption, setSelectedOption] = useState<string>("Sort by");
+
+  // Toggle the dropdown menu
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+
+  // Handle sorting option change
+  const handleSortOption = (option: string) => {
+    setSelectedOption(option);
+    if (option === "Sort by Oldest") {
+      sortByOldest(roadTrips);
+    } else if (option === "Sort by Recent") {
+      sortByRecent(roadTrips);
+    }
+    setIsOpen(false); // Close dropdown after selection
+  };
+
+  // Sort the data by oldest (ascending)
+  const sortByOldest = (roadTrips: RoadTrip[]) => {
+    const sortedRoadTrips = [...roadTrips].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    setRoadTrips(sortedRoadTrips);
+  };
+
+  // Sort the data by recent (descending)
+  const sortByRecent = (roadTrips: RoadTrip[]) => {
+    const sortedRoadTrips = [...roadTrips].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setRoadTrips(sortedRoadTrips);
+  };
+
   useEffect(() => {
     const fetchRoadTrips = async () => {
       const response = await api.get("/roadtrips");
@@ -72,6 +109,44 @@ const DashboardPage: React.FC = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {roadTrips.length > 0 ? (
+            <div className="relative inline-block text-left">
+              {/* Button to toggle dropdown */}
+              <button
+                type="button"
+                onClick={toggleDropdown}
+                className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-md"
+              >
+                {selectedOption}
+              </button>
+
+              {/* Dropdown menu */}
+              {isOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                  <ul className="py-1">
+                    <li>
+                      <button
+                        onClick={() => handleSortOption("Sort by Oldest")}
+                        className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
+                      >
+                        Sort by Oldest
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => handleSortOption("Sort by Recent")}
+                        className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
+                      >
+                        Sort by Recent
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            ""
+          )}
           {roadTrips.length > 0 ? (
             roadTrips.map((trip) => (
               <Card key={trip.id} className="p-4 bg-zinc-800 border-zinc-700">
