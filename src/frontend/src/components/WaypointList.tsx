@@ -11,7 +11,6 @@ import { WaypointInput } from "./WaypointInput";
 import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
 import { Socket } from "socket.io-client";
 
-
 interface Waypoint {
   id: string;
   name: string;
@@ -176,128 +175,138 @@ export const WaypointList = ({
   };
 
   return (
-    <Card className="h-full overflow-hidden flex flex-col bg-gradient-to-b from-zinc-900 to-zinc-950 border-zinc-800">
-      <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+    <Card className="h-[calc(100vh-4rem)] flex flex-col bg-gradient-to-b from-zinc-900 to-zinc-950 border-zinc-800">
+      <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 flex-shrink-0">
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-indigo-500" />
           <span className="font-semibold text-zinc-200">Trip Route</span>
         </div>
         <span className="text-xs text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded-full">
-          {orderedWaypoints.length} stops
+          {orderedWaypoints.length - 2} stops
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="waypoints">
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="space-y-3"
-              >
-                {orderedWaypoints.map((waypoint, index) => (
-                  <Draggable
-                    key={waypoint.id}
-                    draggableId={waypoint.id}
-                    index={index}
+      <div className="flex-1 min-h-0">
+        <div className="h-full overflow-y-auto">
+          <div className="p-4">
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="waypoints">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-3"
                   >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`
-                          relative flex items-center gap-3 p-3 rounded-lg
-                          ${
-                            snapshot.isDragging
-                              ? "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20"
-                              : "bg-zinc-900/50"
-                          }
-                          ${
-                            waypoint.isEndpoint
-                              ? "border border-zinc-800"
-                              : "hover:bg-zinc-800/50"
-                          }
-                          transition-all duration-200 group
-                        `}
+                    {orderedWaypoints.map((waypoint, index) => (
+                      <Draggable
+                        key={waypoint.id}
+                        draggableId={waypoint.id}
+                        index={index}
                       >
-                        <div className="flex items-center gap-2">
+                        {(provided, snapshot) => (
                           <div
-                            {...provided.dragHandleProps}
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
                             className={`
-                              p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors
-                              ${snapshot.isDragging ? "bg-zinc-700/50" : ""}
+                              relative flex items-center gap-3 p-3 rounded-lg
+                              ${
+                                snapshot.isDragging
+                                  ? "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20"
+                                  : "bg-zinc-900/50"
+                              }
+                              ${
+                                waypoint.isEndpoint
+                                  ? "border border-zinc-800"
+                                  : "hover:bg-zinc-800/50"
+                              }
+                              transition-all duration-200 group
                             `}
                           >
-                            <GripVertical className="h-4 w-4 text-zinc-400 group-hover:text-zinc-300" />
-                          </div>
-                          <div className="flex-shrink-0">
-                            {index === 0 ? (
-                              <div className="relative">
-                                <MapPin className="h-5 w-5 text-emerald-500" />
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <div className="flex items-center gap-2">
+                              <div
+                                {...provided.dragHandleProps}
+                                className={`
+                                  p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors
+                                  ${snapshot.isDragging ? "bg-zinc-700/50" : ""}
+                                `}
+                              >
+                                <GripVertical className="h-4 w-4 text-zinc-400 group-hover:text-zinc-300" />
                               </div>
-                            ) : index === orderedWaypoints.length - 1 ? (
-                              <div className="relative">
-                                <Flag className="h-5 w-5 text-rose-500" />
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
+                              <div className="flex-shrink-0">
+                                {index === 0 ? (
+                                  <div className="relative">
+                                    <MapPin className="h-5 w-5 text-emerald-500" />
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                  </div>
+                                ) : index === orderedWaypoints.length - 1 ? (
+                                  <div className="relative">
+                                    <Flag className="h-5 w-5 text-rose-500" />
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
+                                  </div>
+                                ) : (
+                                  <div className="relative">
+                                    <CircleDot className="h-5 w-5 text-indigo-500" />
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" />
+                                  </div>
+                                )}
                               </div>
-                            ) : (
-                              <div className="relative">
-                                <CircleDot className="h-5 w-5 text-indigo-500" />
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" />
+                            </div>
+
+                            <div className="flex-1">
+                              <WaypointInput
+                                placeholder={
+                                  index === 0
+                                    ? "Starting point"
+                                    : index === orderedWaypoints.length - 1
+                                    ? "Final destination"
+                                    : `Stop ${index}`
+                                }
+                                value={waypoint.name}
+                                onChange={(value, coords) =>
+                                  handleLocationSelect(
+                                    value,
+                                    coords,
+                                    waypoint.id
+                                  )
+                                }
+                                onRemove={
+                                  waypoint.isEndpoint
+                                    ? undefined
+                                    : () => handleRemoveStop(waypoint.id)
+                                }
+                                showRemove={!waypoint.isEndpoint}
+                              />
+                            </div>
+
+                            {!waypoint.isEndpoint && (
+                              <div className="absolute -left-2 -top-2 w-6 h-6 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-semibold shadow-lg">
+                                {index}
                               </div>
                             )}
                           </div>
-                        </div>
-
-                        <div className="flex-1">
-                          <WaypointInput
-                            placeholder={
-                              index === 0
-                                ? "Starting point"
-                                : index === orderedWaypoints.length - 1
-                                ? "Final destination"
-                                : `Stop ${index}`
-                            }
-                            value={waypoint.name}
-                            onChange={(value, coords) =>
-                              handleLocationSelect(value, coords, waypoint.id)
-                            }
-                            onRemove={
-                              waypoint.isEndpoint
-                                ? undefined
-                                : () => handleRemoveStop(waypoint.id)
-                            }
-                            showRemove={!waypoint.isEndpoint}
-                          />
-                        </div>
-
-                        {!waypoint.isEndpoint && (
-                          <div className="absolute -left-2 -top-2 w-6 h-6 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-semibold shadow-lg">
-                            {index}
-                          </div>
                         )}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
 
-        {(
-          <Button
-            variant="ghost"
-            onClick={handleAddStop}
-            className="w-full mt-4 border border-dashed border-zinc-800 hover:bg-zinc-800/50 text-zinc-400 h-16 group transition-all duration-200 hover:border-indigo-500/50"
-          >
-            <Plus className="h-4 w-4 mr-2 group-hover:text-indigo-400" />
-            <span className="group-hover:text-zinc-300">Add another stop</span>
-          </Button>
-        )}
+            {
+              <Button
+                variant="ghost"
+                onClick={handleAddStop}
+                className="w-full mt-4 border border-dashed border-zinc-800 hover:bg-zinc-800/50 text-zinc-400 h-16 group transition-all duration-200 hover:border-indigo-500/50"
+              >
+                <Plus className="h-4 w-4 mr-2 group-hover:text-indigo-400" />
+                <span className="group-hover:text-zinc-300">
+                  Add another stop
+                </span>
+              </Button>
+            }
+          </div>
+        </div>
       </div>
     </Card>
   );
