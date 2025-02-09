@@ -39,7 +39,7 @@ const NewRoadTripPage = () => {
     <div className="min-h-screen bg-[#1C1C1C] text-white">
       <div className="container mx-auto py-12 px-4">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
           className="flex items-center text-gray-400 hover:text-blue-500 transition-colors duration-200 mb-8"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
