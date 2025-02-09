@@ -188,14 +188,24 @@ export class RoadTripController {
         (roadTrip.ownerId !== userId &&
           !roadTrip.members.some((member) => member.id === userId))
       ) {
-        res.status(403).json({ error: "Access denied" });
-        return;
+        throw new HttpException(403, "Access denied");
+      }
+
+      // Validate order if it's being updated
+      if (typeof updates.order === "number") {
+        if (updates.order < 0 || updates.order >= roadTrip.waypoints.length) {
+          throw new HttpException(400, "Invalid order value");
+        }
       }
 
       const waypoint = await this.service.updateWaypoint(waypointId, updates);
       res.json(waypoint);
     } catch (error) {
-      next(new HttpException(500, "Failed to update waypoint"));
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, "Failed to update waypoint"));
+      }
     }
   };
 
