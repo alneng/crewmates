@@ -59,28 +59,11 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
 
             // Fetch the driving directions from Mapbox
             const response = await mapbox.get(
-              `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&annotations=distance,duration`
+              `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full`
             );
             const data = response.data;
 
             if (data.routes && data.routes[0]) {
-              // Extract leg information
-              const legs = data.routes[0].legs || [];
-              const routeInfo = legs.map((leg: any) => ({
-                distance: leg.distance,
-                duration: leg.duration,
-              }));
-              console.log("Route legs:", legs);
-              console.log("Formatted routeInfo:", routeInfo);
-
-              // Emit route information if socket is available
-              if (socket) {
-                console.log("Socket exists, emitting route-update");
-                socket.emit("route-update", routeInfo);
-              } else {
-                console.log("No socket available");
-              }
-
               map.addSource("route", {
                 type: "geojson",
                 data: {
