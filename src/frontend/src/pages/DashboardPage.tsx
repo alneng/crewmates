@@ -4,6 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CarIcon, PlusCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 interface RoadTrip {
   id: string;
@@ -24,6 +30,24 @@ const DashboardPage: React.FC = () => {
   const [activeSessionIds, setActiveSessionIds] = useState<Map<string, string>>(
     new Map()
   );
+
+  // Sort the data by oldest (ascending)
+  const sortByOldest = (roadTrips: RoadTrip[]) => {
+    const sortedRoadTrips = [...roadTrips].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    setRoadTrips(sortedRoadTrips);
+  };
+
+  // Sort the data by recent (descending)
+  const sortByRecent = (roadTrips: RoadTrip[]) => {
+    const sortedRoadTrips = [...roadTrips].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setRoadTrips(sortedRoadTrips);
+  };
 
   useEffect(() => {
     const fetchRoadTrips = async () => {
@@ -70,7 +94,31 @@ const DashboardPage: React.FC = () => {
             </Button>
           </Link>
         </div>
-
+        <div className="mb-5">
+          {roadTrips && (
+            <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
+                  Sort by
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-800" align="start">
+                  <DropdownMenuItem
+                    className="text-white focus:bg-zinc-700 focus:text-white"
+                    onClick={() => sortByRecent(roadTrips)}
+                  >
+                    Recent
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-white focus:bg-zinc-700 focus:text-white"
+                    onClick={() => sortByOldest(roadTrips)}
+                  >
+                    Oldest
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {roadTrips.length > 0 ? (
             roadTrips.map((trip) => (
