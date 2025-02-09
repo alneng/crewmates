@@ -2,13 +2,14 @@ import { useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./CollaborativeMap.css";
-import { useSocket } from "../hooks/socket.hooks";
 import { useCollaborators } from "../hooks/collaborator.hooks";
 import { useSession } from "@/lib/auth-client";
 import { mapbox } from "@/lib/axios";
+import { Socket } from "socket.io-client";
 
 interface Props {
   sessionId: string;
+  socket: Socket | null;
   waypoints: Array<{
     id: string;
     name: string;
@@ -20,11 +21,10 @@ interface Props {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-export const CollaborativeMap = ({ sessionId, waypoints }: Props) => {
+export const CollaborativeMap = ({ socket, waypoints }: Props) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
   const cursorMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const socket = useSocket(sessionId);
   const collaborators = useCollaborators(socket);
   const { data: session } = useSession();
 
