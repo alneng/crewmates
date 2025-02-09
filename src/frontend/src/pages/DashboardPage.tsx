@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Share2 } from "lucide-react";
+import { CarIcon, PlusCircle, Share2, SunIcon } from "lucide-react";
 import api from "@/lib/axios";
 import { transformDate } from "@/lib/utils";
 
@@ -60,7 +60,11 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-zinc-900 text-zinc-200">
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Road Trips</h1>
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold mr-2">My Road Trips</h1>
+            <CarIcon />
+          </div>
+
           <Link to="/roadtrips/new">
             <Button className="bg-blue-600 hover:bg-blue-700">
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -84,7 +88,7 @@ const DashboardPage: React.FC = () => {
                         <span className="font-extrabold mx-1">
                           {trip.owner.name}
                         </span>
-                      }{" "}
+                      }
                       on {transformDate(trip.createdAt)}
                     </div>
                   </div>
@@ -128,12 +132,22 @@ const DashboardPage: React.FC = () => {
               </Card>
             ))
           ) : (
-            <div className="text-white place-items-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3">
+            <div className="text-white place-items-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-5 bg-blue-600 rounded-md">
               <div>
-                <p className="text-center">
-                  No road trips have been created! Get started on your journey
-                  by creating one now!
-                </p>
+                <div className="flex justify-between">
+                  No road trips have been created.{" "}
+                  <SunIcon className="text-yellow-200 size-10" />
+                </div>
+                <div>Get started on your journey by creating one </div>
+                {<span className="font-bold">now!</span>}
+                <div className="flex items-center p-3">
+                  <CarIcon className="" />
+                  .................
+                  <CarIcon className="" />
+                  ..........................
+                  <CarIcon className="" />
+                  .....................
+                </div>
               </div>
             </div>
           )}
