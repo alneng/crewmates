@@ -14,9 +14,19 @@ interface Props {
   roadTripId: string;
   owner: Member;
   members: Member[];
+  activeCollaborators: string[];
 }
 
-export const MemberList: React.FC<Props> = ({ roadTripId, owner, members }) => {
+const ActiveIndicator: React.FC = () => {
+  return <div className="w-2 h-2 rounded-full animate-pulse bg-green-800" />;
+};
+
+export const MemberList: React.FC<Props> = ({
+  roadTripId,
+  owner,
+  members,
+  activeCollaborators,
+}) => {
   const { data: session } = useSession();
   const removeMemberMutation = useRemoveMember(roadTripId);
   const isOwner = session?.user?.id === owner.id;
@@ -42,6 +52,9 @@ export const MemberList: React.FC<Props> = ({ roadTripId, owner, members }) => {
         <div className="flex items-center justify-between text-zinc-200">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-blue-500" />
+            {activeCollaborators.some((c) => c === owner.id) && (
+              <ActiveIndicator />
+            )}
             <span>{owner.name}</span>
             {session?.user?.id === owner.id && (
               <span className="text-xs text-zinc-400">(You)</span>
@@ -58,6 +71,9 @@ export const MemberList: React.FC<Props> = ({ roadTripId, owner, members }) => {
           >
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-zinc-400" />
+              {activeCollaborators.some((c) => c === member.id) && (
+                <ActiveIndicator />
+              )}
               <span>{member.name}</span>
               {session?.user?.id === member.id && (
                 <span className="text-xs text-zinc-400">(You)</span>

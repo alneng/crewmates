@@ -10,6 +10,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import RoadTripPage from "@/pages/RoadTripPage";
 import NewRoadTripPage from "@/pages/NewRoadTripPage";
 import JoinSessionPage from "@/pages/JoinSessionPage";
+import HomePage from "@/pages/HomePage";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { data: session, isPending } = useSession();
@@ -32,11 +33,12 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<HomePage />} />
           {/* Public routes */}
           <Route path="/auth" element={<AuthPage />} />
           {/* Protected routes */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardPage />

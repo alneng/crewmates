@@ -122,7 +122,82 @@ export class RoadTripService {
     });
   }
 
+  async updateWaypointOrder(
+    roadTripId: string,
+    waypointId: string,
+    newOrder: number
+  ) {
+    // Start a transaction to ensure all updates are atomic
+    return prisma.$transaction(async (tx) => {
+      // Get the current waypoint and its order
+      const currentWaypoint = await tx.waypoint.findUnique({
+        where: { id: waypointId },
+      });
+
+      if (!currentWaypoint) {
+        throw new Error("Waypoint not found");
+      }
+
+      const oldOrder = currentWaypoint.order;
+
+      if (oldOrder === newOrder) {
+        return currentWaypoint;
+      }
+
+      // If moving down the list
+      if (newOrder > oldOrder) {
+        await tx.waypoint.updateMany({
+          where: {
+            roadTripId,
+            order: {
+              gt: oldOrder,
+              lte: newOrder,
+            },
+          },
+          data: {
+            order: {
+              decrement: 1,
+            },
+          },
+        });
+      }
+      // If moving up the list
+      else {
+        await tx.waypoint.updateMany({
+          where: {
+            roadTripId,
+            order: {
+              gte: newOrder,
+              lt: oldOrder,
+            },
+          },
+          data: {
+            order: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      return tx.waypoint.update({
+        where: { id: waypointId },
+        data: { order: newOrder },
+      });
+    });
+  }
+
   async updateWaypoint(id: string, data: any) {
+    if (typeof data.order === "number") {
+      const waypoint = await prisma.waypoint.findUnique({
+        where: { id },
+        include: { roadTrip: true },
+      });
+      if (!waypoint) {
+        throw new Error("Waypoint not found");
+      }
+      return this.updateWaypointOrder(waypoint.roadTripId, id, data.order);
+    }
+
     return prisma.waypoint.update({
       where: { id },
       data,

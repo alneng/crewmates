@@ -11,6 +11,7 @@ import { WaypointInput } from "./WaypointInput";
 import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
 import { Socket } from "socket.io-client";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Waypoint {
   id: string;
@@ -58,10 +59,21 @@ export const WaypointList = ({
   }, [waypoints]);
 
   const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
+    if (!result.destination || result.destination.index === result.source.index)
+      return;
 
     const newOrder = result.destination.index;
-    await onUpdate(result.draggableId, { order: newOrder });
+
+    try {
+      // Optimistically update the UI
+      const newWaypoints = Array.from(orderedWaypoints);
+      const [removed] = newWaypoints.splice(result.source.index, 1);
+      newWaypoints.splice(result.destination.index, 0, removed);
+      await onUpdate(result.draggableId, { order: newOrder });
+    } catch (error) {
+      console.error("Failed to reorder waypoint:", error);
+      toast.error("Failed to reorder waypoint. Please try again.");
+    }
   };
 
   const handleAddStop = useCallback(() => {
