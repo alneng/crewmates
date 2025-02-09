@@ -117,32 +117,28 @@ const DashboardPage: React.FC = () => {
         </div>
         <div className="mb-5">
           {roadTrips.length > 0 ? (
-            <div className="relative inline-block text-left">
-              {/* Button to toggle dropdown */}
-              {/* Dropdown menu */}
-              <div className="">
-                {
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
-                      Sort by
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-zinc-800" align="start">
-                      <DropdownMenuItem
-                        className="text-white focus:bg-zinc-700 focus:text-white"
-                        onClick={() => handleSortOption("Sort by recent")}
-                      >
-                        Recent
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-white  focus:bg-zinc-700 focus:text-white"
-                        onClick={() => handleSortOption("Sort by oldest")}
-                      >
-                        Oldest
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                }
-              </div>
+            <div>
+              {
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="bg-blue-700 rounded-md p-2">
+                    Sort by
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-zinc-800" align="start">
+                    <DropdownMenuItem
+                      className="text-white focus:bg-zinc-700 focus:text-white"
+                      onClick={() => handleSortOption("Sort by recent")}
+                    >
+                      Recent
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-white  focus:bg-zinc-700 focus:text-white"
+                      onClick={() => handleSortOption("Sort by oldest")}
+                    >
+                      Oldest
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
             </div>
           ) : (
             ""
