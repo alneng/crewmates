@@ -34,7 +34,6 @@ export const RoadTripPage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
-  const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
   // Socket and collaborators
@@ -82,7 +81,6 @@ export const RoadTripPage = () => {
     try {
       await inviteMember.mutateAsync(inviteEmail);
       setInviteEmail("");
-      setShowInvite(false);
     } catch (error) {
       console.error("Failed to invite member:", error);
     }
