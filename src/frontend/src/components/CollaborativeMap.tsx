@@ -6,6 +6,7 @@ import { useCollaborators } from "../hooks/collaborator.hooks";
 import { useSession } from "@/lib/auth-client";
 import { mapbox } from "@/lib/axios";
 import { Socket } from "socket.io-client";
+import { MapMarkerPin } from "@/assets/MapMarkerPin";
 
 interface Props {
   sessionId: string;
@@ -25,8 +26,36 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
   const cursorMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const collaborators = useCollaborators(socket);
   const { data: session } = useSession();
+
+  const updateWaypointMarkers = useCallback(
+    (map: mapboxgl.Map) => {
+      // Remove markers for deleted waypoints
+      waypointMarkersRef.current.forEach((marker, waypointId) => {
+        if (!waypoints.find((wp) => wp.id === waypointId)) {
+          marker.remove();
+          waypointMarkersRef.current.delete(waypointId);
+        }
+      });
+
+      // Update or add markers for current waypoints
+      waypoints.forEach((waypoint) => {
+        let marker = waypointMarkersRef.current.get(waypoint.id);
+        if (!marker) {
+          marker = new mapboxgl.Marker({
+            element: MapMarkerPin(),
+            anchor: "bottom",
+          });
+          waypointMarkersRef.current.set(waypoint.id, marker);
+        }
+        // Update marker position
+        marker.setLngLat([waypoint.longitude, waypoint.latitude]).addTo(map);
+      });
+    },
+    [waypoints]
+  );
 
   const handleWaypointsUpdate = useCallback(
     async (map: mapboxgl.Map, waypoints: Props["waypoints"]) => {
@@ -36,6 +65,9 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
 
       // Sort waypoints
       const sortedWaypoints = [...waypoints].sort((a, b) => a.order - b.order);
+
+      // Update markers
+      updateWaypointMarkers(map);
 
       // Update viewport if we have waypoints
       if (sortedWaypoints.length > 0) {
@@ -52,12 +84,10 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
         // Add driving route for 2+ waypoints
         if (sortedWaypoints.length >= 2) {
           try {
-            // Construct the coordinates query string
             const coordinates = sortedWaypoints
               .map((wp) => `${wp.longitude},${wp.latitude}`)
               .join(";");
 
-            // Fetch the driving directions from Mapbox
             const response = await mapbox.get(
               `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&annotations=distance,duration`
             );
@@ -111,7 +141,7 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
         }
       }
     },
-    []
+    [updateWaypointMarkers]
   );
 
   // Initialize map
@@ -182,15 +212,6 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
     // Remove markers for disconnected users
     cursorMarkersRef.current.forEach((marker, userId) => {
       if (!collaborators.has(userId)) {
-        marker.remove();
-        cursorMarkersRef.current.delete(userId);
-      }
-    });
-
-    // Cleanup for any stale markers
-    const connectedUserIds = Array.from(collaborators.keys());
-    cursorMarkersRef.current.forEach((marker, userId) => {
-      if (!connectedUserIds.includes(userId)) {
         marker.remove();
         cursorMarkersRef.current.delete(userId);
       }

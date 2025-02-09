@@ -34,7 +34,6 @@ export const RoadTripPage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
-  const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
   // Socket and collaborators
@@ -82,7 +81,6 @@ export const RoadTripPage = () => {
     try {
       await inviteMember.mutateAsync(inviteEmail);
       setInviteEmail("");
-      setShowInvite(false);
     } catch (error) {
       console.error("Failed to invite member:", error);
     }
@@ -104,7 +102,7 @@ export const RoadTripPage = () => {
       <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="flex items-center text-zinc-400 hover:text-zinc-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

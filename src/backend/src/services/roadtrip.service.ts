@@ -1,4 +1,6 @@
 import { prisma } from "../prisma";
+import { Prisma } from "@prisma/client";
+import { HttpException } from "../utils/errors.utils";
 
 export class RoadTripService {
   async createRoadTrip({ name, ownerId }: { name: string; ownerId: string }) {
@@ -106,19 +108,48 @@ export class RoadTripService {
     roadTripId: string,
     data: { name: string; latitude: number; longitude: number }
   ) {
-    const lastWaypoint = await prisma.waypoint.findFirst({
-      where: { roadTripId },
-      orderBy: { order: "desc" },
+    return prisma.$transaction(async (tx) => {
+      const lastWaypoint = await tx.waypoint.findFirst({
+        where: { roadTripId },
+        orderBy: { order: "desc" },
+      });
+
+      const order = lastWaypoint ? lastWaypoint.order + 1 : 0;
+
+      const newWaypoint = await tx.waypoint.create({
+        data: {
+          ...data,
+          order,
+          roadTripId,
+        },
+      });
+
+      // Normalize orders after adding to ensure no gaps
+      await this.normalizeWaypointOrders(roadTripId, tx);
+
+      return newWaypoint;
+    });
+  }
+
+  async updateWaypoint(id: string, data: any) {
+    const waypoint = await prisma.waypoint.findUnique({
+      where: { id },
+      include: { roadTrip: true },
     });
 
-    const order = lastWaypoint ? lastWaypoint.order + 1 : 0;
+    if (!waypoint) {
+      throw new HttpException(404, "Waypoint not found");
+    }
 
-    return prisma.waypoint.create({
-      data: {
-        ...data,
-        order,
-        roadTripId,
-      },
+    // If order is being updated, use the specialized order update method
+    if (typeof data.order === "number") {
+      return this.updateWaypointOrder(waypoint.roadTripId, id, data.order);
+    }
+
+    // For non-order updates, just update the waypoint directly
+    return prisma.waypoint.update({
+      where: { id },
+      data,
     });
   }
 
@@ -127,86 +158,81 @@ export class RoadTripService {
     waypointId: string,
     newOrder: number
   ) {
-    // Start a transaction to ensure all updates are atomic
     return prisma.$transaction(async (tx) => {
-      // Get the current waypoint and its order
-      const currentWaypoint = await tx.waypoint.findUnique({
-        where: { id: waypointId },
+      // Get all waypoints for this road trip
+      const waypoints = await tx.waypoint.findMany({
+        where: { roadTripId },
+        orderBy: { order: "asc" },
       });
 
+      const currentWaypoint = waypoints.find((wp) => wp.id === waypointId);
       if (!currentWaypoint) {
-        throw new Error("Waypoint not found");
+        throw new HttpException(404, "Waypoint not found");
       }
 
-      const oldOrder = currentWaypoint.order;
+      // Ensure newOrder is within bounds
+      const maxOrder = waypoints.length - 1;
+      const boundedNewOrder = Math.max(0, Math.min(newOrder, maxOrder));
 
-      if (oldOrder === newOrder) {
-        return currentWaypoint;
-      }
+      // Remove waypoint from current position and insert at new position
+      const reorderedWaypoints = waypoints.filter((wp) => wp.id !== waypointId);
+      reorderedWaypoints.splice(boundedNewOrder, 0, currentWaypoint);
 
-      // If moving down the list
-      if (newOrder > oldOrder) {
-        await tx.waypoint.updateMany({
-          where: {
-            roadTripId,
-            order: {
-              gt: oldOrder,
-              lte: newOrder,
-            },
-          },
-          data: {
-            order: {
-              decrement: 1,
-            },
-          },
-        });
-      }
-      // If moving up the list
-      else {
-        await tx.waypoint.updateMany({
-          where: {
-            roadTripId,
-            order: {
-              gte: newOrder,
-              lt: oldOrder,
-            },
-          },
-          data: {
-            order: {
-              increment: 1,
-            },
-          },
-        });
-      }
+      // Update all waypoints with their new orders
+      const updates = reorderedWaypoints.map((waypoint, index) =>
+        tx.waypoint.update({
+          where: { id: waypoint.id },
+          data: { order: index },
+        })
+      );
 
-      return tx.waypoint.update({
-        where: { id: waypointId },
-        data: { order: newOrder },
-      });
-    });
-  }
-
-  async updateWaypoint(id: string, data: any) {
-    if (typeof data.order === "number") {
-      const waypoint = await prisma.waypoint.findUnique({
-        where: { id },
-        include: { roadTrip: true },
-      });
-      if (!waypoint) {
-        throw new Error("Waypoint not found");
-      }
-      return this.updateWaypointOrder(waypoint.roadTripId, id, data.order);
-    }
-
-    return prisma.waypoint.update({
-      where: { id },
-      data,
+      await Promise.all(updates);
+      return currentWaypoint;
     });
   }
 
   async deleteWaypoint(id: string) {
-    return prisma.waypoint.delete({
+    const waypoint = await prisma.waypoint.findUnique({
       where: { id },
+      include: { roadTrip: true },
     });
+
+    if (!waypoint) {
+      throw new HttpException(404, "Waypoint not found");
+    }
+
+    // Delete the waypoint and reorder remaining waypoints in a transaction
+    return prisma.$transaction(async (tx) => {
+      await tx.waypoint.delete({
+        where: { id },
+      });
+
+      // Reorder remaining waypoints to close any gaps
+      await this.normalizeWaypointOrders(waypoint.roadTripId, tx);
+    });
+  }
+
+  /**
+   * Private helper method to ensure waypoint orders are sequential without gaps
+   */
+  private async normalizeWaypointOrders(
+    roadTripId: string,
+    tx: Prisma.TransactionClient | typeof prisma = prisma
+  ) {
+    // Get all waypoints for this road trip, ordered by their current order
+    const waypoints = await tx.waypoint.findMany({
+      where: { roadTripId },
+      orderBy: { order: "asc" },
+    });
+
+    // Update each waypoint's order to ensure sequential ordering
+    const updates = waypoints.map((waypoint, index) =>
+      tx.waypoint.update({
+        where: { id: waypoint.id },
+        data: { order: index },
+      })
+    );
+
+    await Promise.all(updates);
   }
 }
