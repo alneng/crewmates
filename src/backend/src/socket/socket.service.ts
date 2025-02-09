@@ -31,6 +31,7 @@ export class SocketService {
   private async handleConnection(socket: Socket) {
     const userId = socket.handshake.auth.userId;
     const name = socket.handshake.auth.name;
+    const image = socket.handshake.auth.image;
     if (!userId || !name) {
       socket.disconnect();
       return;
@@ -67,19 +68,24 @@ export class SocketService {
         return;
       }
 
+      if (currentSessionId) {
+        await socket.leave(currentSessionId);
+        socket.to(currentSessionId).emit("user-left", { userId });
+      }
+
       currentSessionId = sessionId;
       await socket.join(sessionId);
-      socket.to(sessionId).emit("user-joined", { userId, name });
+
+      // Broadcast to all clients in the session, including sender
+      this.io.in(sessionId).emit("user-joined", { userId, name, image });
     });
 
-    // Handle cursor updates
     socket.on("cursor-move", (data: CursorPosition) => {
-      const sessionId = Array.from(socket.rooms)[1]; // First room is socket's own room
-      if (!sessionId) return;
-
-      socket.to(sessionId).emit("cursor-update", {
+      if (!currentSessionId) return;
+      socket.to(currentSessionId).emit("cursor-update", {
         userId,
         name,
+        image,
         latitude: data.latitude,
         longitude: data.longitude,
       });
@@ -90,19 +96,11 @@ export class SocketService {
       const sessionId = Array.from(socket.rooms)[1];
       if (!sessionId) return;
 
-      // Update in database
-      await prisma.waypoint.update({
-        where: { id: data.id },
-        data: { order: data.order },
-      });
-
       socket.to(sessionId).emit("waypoint-updated", data);
     });
 
     socket.on("disconnect", () => {
       if (currentSessionId) {
-        socket.to(currentSessionId).emit("user-left", { userId, name });
-        // Broadcast to all clients in the session that this user has left
         this.io.to(currentSessionId).emit("user-left", { userId, name });
       }
     });

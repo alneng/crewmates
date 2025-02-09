@@ -1,77 +1,63 @@
 import { useState } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router";
-import { CollaborativeMap } from "@/components/CollaborativeMap";
-import { WaypointList } from "@/components/WaypointList";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { ArrowLeft, Share2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Share2, ArrowLeft, Users, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { WaypointList } from "@/components/WaypointList";
+import { CollaborativeMap } from "@/components/CollaborativeMap";
+import { MemberList } from "@/components/MemberList";
 import { useSocket } from "@/hooks/socket.hooks";
+import { useCollaborators } from "@/hooks/collaborator.hooks";
 import {
   useRoadTrip,
   useAddWaypoint,
   useUpdateWaypoint,
   useDeleteWaypoint,
   useInviteMember,
-  useRemoveMember,
-  type WaypointInput,
 } from "@/hooks/roadtrip.hooks";
-import { useSession } from "@/lib/auth-client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
-const RoadTripPage = () => {
-  const { id = "" } = useParams<{ id: string }>();
+export const RoadTripPage = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
-  const navigate = useNavigate();
-  const { data: session } = useSession();
-  const socket = useSocket(sessionId);
-
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
-  // Queries and Mutations
-  const { data: roadTrip, isLoading } = useRoadTrip(id);
-  const addWaypoint = useAddWaypoint(id, socket);
-  const updateWaypoint = useUpdateWaypoint(id, socket);
-  const deleteWaypoint = useDeleteWaypoint(id, socket);
-  const inviteMember = useInviteMember(id);
-  const removeMember = useRemoveMember(id);
+  // Socket and collaborators
+  const socket = useSocket(sessionId);
+  const collaborators = useCollaborators(socket);
 
-  const handleAddWaypoint = async (waypoint: WaypointInput) => {
-    try {
-      await addWaypoint.mutateAsync(waypoint);
-    } catch (error) {
-      console.error("Failed to add waypoint:", error);
-    }
+  // Road trip data and mutations
+  const { data: roadTrip, isLoading } = useRoadTrip(id!);
+  const addWaypoint = useAddWaypoint(id!, socket);
+  const updateWaypoint = useUpdateWaypoint(id!, socket);
+  const deleteWaypoint = useDeleteWaypoint(id!, socket);
+  const inviteMember = useInviteMember(id!);
+
+  if (isLoading || !roadTrip) {
+    return <div>Loading...</div>;
+  }
+
+  const handleAddWaypoint = async (waypoint: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    await addWaypoint.mutateAsync(waypoint);
   };
 
   const handleUpdateWaypoint = async (
     waypointId: string,
-    updates: Partial<WaypointInput & { order: number }>
+    updates: { name?: string; order?: number }
   ) => {
-    try {
-      await updateWaypoint.mutateAsync({ waypointId, updates });
-    } catch (error) {
-      console.error("Failed to update waypoint:", error);
-    }
+    await updateWaypoint.mutateAsync({ waypointId, updates });
   };
 
   const handleDeleteWaypoint = async (waypointId: string) => {
-    try {
-      await deleteWaypoint.mutateAsync(waypointId);
-    } catch (error) {
-      console.error("Failed to delete waypoint:", error);
-    }
-  };
-
-  const handleShareSession = async () => {
-    if (!sessionId) return;
-    const shareLink = `${window.location.origin}/join/${sessionId}`;
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      alert("Share link copied to clipboard!");
-    } catch (error) {
-      console.error("Failed to copy share link:", error);
-    }
+    await deleteWaypoint.mutateAsync(waypointId);
   };
 
   const handleInviteMember = async (e: React.FormEvent) => {
@@ -87,19 +73,15 @@ const RoadTripPage = () => {
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
-    if (!roadTrip?.isOwner) return;
-
+  const handleShareSession = async () => {
+    const shareUrl = `${window.location.origin}/roadtrips/${id}?session=${sessionId}`;
     try {
-      await removeMember.mutateAsync(userId);
+      await navigator.clipboard.writeText(shareUrl);
+      toast("Link copied to clipboard");
     } catch (error) {
-      console.error("Failed to remove member:", error);
+      console.error("Failed to copy link:", error);
     }
   };
-
-  if (isLoading || !roadTrip || !sessionId) {
-    return <div className="h-screen bg-zinc-900 text-zinc-200">Loading...</div>;
-  }
 
   return (
     <div className="h-screen flex flex-col bg-zinc-900 text-zinc-200">
@@ -115,7 +97,6 @@ const RoadTripPage = () => {
           </button>
           <h1 className="text-xl font-bold">{roadTrip.name}</h1>
         </div>
-
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -126,7 +107,6 @@ const RoadTripPage = () => {
             <Users className="w-4 h-4 mr-2" />
             Invite
           </Button>
-
           <Button
             variant="outline"
             size="sm"
@@ -136,26 +116,24 @@ const RoadTripPage = () => {
             <Share2 className="w-4 h-4 mr-2" />
             Share Link
           </Button>
-
+          {/* Active collaborators */}
           <div className="flex -space-x-2">
-            {roadTrip.members.map((member) => (
-              <div key={member.id} className="relative group">
-                <div
-                  className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-sm font-medium"
-                  title={member.name}
-                >
-                  {member.name[0]}
-                </div>
-                {roadTrip.isOwner && member.id !== session?.user?.id && (
-                  <button
-                    onClick={() => handleRemoveMember(member.id)}
-                    className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 bg-red-500 rounded-full items-center justify-center"
-                    title="Remove member"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
+            {Array.from(collaborators.values()).map((collaborator) => (
+              <Avatar className="w-8 h-8" key={collaborator.userId}>
+                <AvatarImage src={collaborator.image} />
+                <AvatarFallback className="bg-purple-600 border-2 border-zinc-700 text-sm">
+                  {collaborator.name[0]}
+                </AvatarFallback>
+              </Avatar>
+              // <div
+              //   key={collaborator.userId}
+              //   className="relative"
+              //   title={collaborator.name}
+              // >
+              //   <div className="w-8 h-8 rounded-full bg-purple-600 border-2 border-zinc-700 flex items-center justify-center text-sm font-medium">
+              //     {collaborator.name[0]}
+              //   </div>
+              // </div>
             ))}
           </div>
         </div>
@@ -191,21 +169,30 @@ const RoadTripPage = () => {
       {/* Main content */}
       <div className="flex-1 flex">
         {/* Sidebar */}
-        <div className="w-80 border-r border-zinc-800 bg-zinc-900 p-4">
-          <WaypointList
-            sessionId={sessionId}
-            waypoints={roadTrip.waypoints}
-            onUpdate={handleUpdateWaypoint}
-            onDelete={handleDeleteWaypoint}
-            onAdd={handleAddWaypoint}
-            socket={socket}
-          />
+        <div className="w-80 border-r border-zinc-800 bg-zinc-900 flex flex-col">
+          <div className="p-4 flex-1">
+            <WaypointList
+              sessionId={sessionId!}
+              waypoints={roadTrip.waypoints}
+              onUpdate={handleUpdateWaypoint}
+              onDelete={handleDeleteWaypoint}
+              onAdd={handleAddWaypoint}
+              socket={socket}
+            />
+          </div>
+          <div className="p-4 border-t border-zinc-800">
+            <MemberList
+              roadTripId={id!}
+              owner={roadTrip.owner}
+              members={roadTrip.members}
+            />
+          </div>
         </div>
 
         {/* Map */}
         <div className="flex-1 bg-zinc-900">
           <CollaborativeMap
-            sessionId={sessionId}
+            sessionId={sessionId!}
             waypoints={roadTrip.waypoints}
             socket={socket}
           />
