@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { WaypointInput } from "./WaypointInput";
 import { GripVertical, Plus, MapPin, Flag, CircleDot } from "lucide-react";
 import { Socket } from "socket.io-client";
+import { cn } from "@/lib/utils";
 
 interface Waypoint {
   id: string;
@@ -217,28 +218,24 @@ export const WaypointList = ({
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`
-                              relative flex items-center gap-3 p-3 rounded-lg
-                              ${
-                                snapshot.isDragging
-                                  ? "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20"
-                                  : "bg-zinc-900/50"
+                            className={cn(
+                              "relative flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group",
+                              {
+                                "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20":
+                                  snapshot.isDragging,
+                                "bg-zinc-900/50": !snapshot.isDragging,
+                                "border border-zinc-800": waypoint.isEndpoint,
+                                "hover:bg-zinc-800/50": !waypoint.isEndpoint,
                               }
-                              ${
-                                waypoint.isEndpoint
-                                  ? "border border-zinc-800"
-                                  : "hover:bg-zinc-800/50"
-                              }
-                              transition-all duration-200 group
-                            `}
+                            )}
                           >
                             <div className="flex items-center gap-2">
                               <div
                                 {...provided.dragHandleProps}
-                                className={`
-                                  p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors
-                                  ${snapshot.isDragging ? "bg-zinc-700/50" : ""}
-                                `}
+                                className={cn(
+                                  "p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors",
+                                  { "bg-zinc-700/50": snapshot.isDragging }
+                                )}
                               >
                                 <GripVertical className="h-4 w-4 text-zinc-400 group-hover:text-zinc-300" />
                               </div>
