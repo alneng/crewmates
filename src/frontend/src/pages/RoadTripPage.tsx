@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Users, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WaypointList } from "@/components/WaypointList";
-import { CollaborativeMap } from "@/components/CollaborativeMap";
+import { CollaborativeMap, RouteLeg } from "@/components/CollaborativeMap";
 import { MemberList } from "@/components/MemberList";
 import { useSocket } from "@/hooks/socket.hooks";
 import { useCollaborators, useWaypointSync } from "@/hooks/collaborator.hooks";
@@ -47,6 +47,7 @@ export const RoadTripPage = () => {
   const updateWaypoint = useUpdateWaypoint(id!, socket);
   const deleteWaypoint = useDeleteWaypoint(id!, socket);
   const inviteMember = useInviteMember(id!);
+  const [waypointLegs, setWaypointLegs] = useState<Array<RouteLeg>>([]);
 
   if (isLoading || !roadTrip) {
     return <div>Loading...</div>;
@@ -248,12 +249,11 @@ export const RoadTripPage = () => {
         <div className="w-80 border-r border-zinc-800 bg-zinc-900 flex flex-col">
           <div className="flex-1 flex flex-col">
             <WaypointList
-              sessionId={sessionId!}
               waypoints={roadTrip.waypoints}
+              waypointLegs={waypointLegs}
               onUpdate={handleUpdateWaypoint}
               onDelete={handleDeleteWaypoint}
               onAdd={handleAddWaypoint}
-              socket={socket}
             />
           </div>
           <div className="flex-shrink-0">
@@ -272,6 +272,7 @@ export const RoadTripPage = () => {
             sessionId={sessionId!}
             waypoints={roadTrip.waypoints}
             socket={socket}
+            setWaypointLegs={setWaypointLegs}
           />
         </div>
       </div>

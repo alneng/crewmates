@@ -8,6 +8,8 @@ import { mapbox } from "@/lib/axios";
 import { Socket } from "socket.io-client";
 import { MapMarkerPin } from "@/assets/MapMarkerPin";
 
+export type RouteLeg = { distance: number; duration: number };
+
 interface Props {
   sessionId: string;
   socket: Socket | null;
@@ -18,11 +20,16 @@ interface Props {
     longitude: number;
     order: number;
   }>;
+  setWaypointLegs: React.Dispatch<React.SetStateAction<RouteLeg[]>>;
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-export const CollaborativeMap = ({ socket, waypoints }: Props) => {
+export const CollaborativeMap: React.FC<Props> = ({
+  socket,
+  waypoints,
+  setWaypointLegs,
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
   const cursorMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -89,11 +96,19 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
               .join(";");
 
             const response = await mapbox.get(
-              `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full`
+              `/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&annotations=distance,duration`
             );
             const data = response.data;
 
             if (data.routes && data.routes[0]) {
+              // Extract leg information
+              const legs: Array<RouteLeg> = data.routes[0].legs || [];
+              const routeInfo = legs.map((leg: RouteLeg) => ({
+                distance: leg.distance,
+                duration: leg.duration,
+              }));
+              setWaypointLegs(routeInfo);
+
               map.addSource("route", {
                 type: "geojson",
                 data: {
@@ -124,7 +139,7 @@ export const CollaborativeMap = ({ socket, waypoints }: Props) => {
         }
       }
     },
-    [updateWaypointMarkers]
+    [setWaypointLegs, updateWaypointMarkers]
   );
 
   // Initialize map
