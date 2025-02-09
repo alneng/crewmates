@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -21,6 +21,11 @@ interface Waypoint {
   order: number;
 }
 
+interface RouteInfo {
+  distance: number;
+  duration: number;
+}
+
 interface Props {
   sessionId: string;
   socket: Socket | null;
@@ -35,11 +40,28 @@ interface Props {
 }
 
 export const WaypointList = ({
+  socket,
   waypoints,
   onUpdate,
   onDelete,
   onAdd,
 }: Props) => {
+  const [routeInfo, setRouteInfo] = useState<RouteInfo[]>([]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRouteUpdate = (info: RouteInfo[]) => {
+      console.log("Received route update:", info);
+      setRouteInfo(info);
+    };
+
+    socket.on("route-update", handleRouteUpdate);
+    return () => {
+      socket.off("route-update", handleRouteUpdate);
+    };
+  }, [socket]);
+
   const orderedWaypoints = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
     const mapped = sorted.map((wp, index) => ({
@@ -57,6 +79,24 @@ export const WaypointList = ({
 
     return mapped;
   }, [waypoints]);
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  const formatDistance = (meters: number) => {
+    const miles = meters / 1609.34;
+    return `${miles.toFixed(1)} mi`;
+  };
+
+  // Calculate total distance and duration from all route legs.
+  const totalDistance = routeInfo.reduce((acc, leg) => acc + leg.distance, 0);
+  const totalDuration = routeInfo.reduce((acc, leg) => acc + leg.duration, 0);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination || result.destination.index === result.source.index)
@@ -163,7 +203,7 @@ export const WaypointList = ({
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             className={cn(
-                              "relative flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group",
+                              "relative flex flex-col gap-1 p-3 rounded-lg transition-all duration-200 group",
                               {
                                 "bg-zinc-800 shadow-lg ring-1 ring-indigo-500/20":
                                   snapshot.isDragging,
@@ -173,12 +213,14 @@ export const WaypointList = ({
                               }
                             )}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <div
                                 {...provided.dragHandleProps}
                                 className={cn(
                                   "p-1.5 rounded-md hover:bg-zinc-700/50 transition-colors",
-                                  { "bg-zinc-700/50": snapshot.isDragging }
+                                  {
+                                    "bg-zinc-700/50": snapshot.isDragging,
+                                  }
                                 )}
                               >
                                 <GripVertical className="h-4 w-4 text-zinc-400" />
@@ -193,33 +235,50 @@ export const WaypointList = ({
                                   <CircleDot className="h-5 w-5 text-indigo-500" />
                                 )}
                               </div>
+
+                              <div className="flex-1">
+                                <WaypointInput
+                                  placeholder={
+                                    index === 0
+                                      ? "Starting point"
+                                      : index === orderedWaypoints.length - 1
+                                      ? "Final destination"
+                                      : `Stop ${index}`
+                                  }
+                                  value={waypoint.name}
+                                  onChange={(value, coords) =>
+                                    handleLocationSelect(
+                                      value,
+                                      coords,
+                                      waypoint.id
+                                    )
+                                  }
+                                  onRemove={
+                                    waypoint.isEndpoint
+                                      ? undefined
+                                      : () => handleRemoveStop(waypoint.id)
+                                  }
+                                  showRemove={!waypoint.isEndpoint}
+                                />
+                              </div>
                             </div>
 
-                            <div className="flex-1">
-                              <WaypointInput
-                                placeholder={
-                                  index === 0
-                                    ? "Starting point"
-                                    : index === orderedWaypoints.length - 1
-                                    ? "Final destination"
-                                    : `Stop ${index}`
-                                }
-                                value={waypoint.name}
-                                onChange={(value, coords) =>
-                                  handleLocationSelect(
-                                    value,
-                                    coords,
-                                    waypoint.id
-                                  )
-                                }
-                                onRemove={
-                                  waypoint.isEndpoint
-                                    ? undefined
-                                    : () => handleRemoveStop(waypoint.id)
-                                }
-                                showRemove={!waypoint.isEndpoint}
-                              />
-                            </div>
+                            {/* Display individual leg info (for stops after the first one) */}
+                            {index > 0 && routeInfo[index - 1] && (
+                              <div className="flex items-center gap-1.5 pl-12 text-[11px] text-zinc-500">
+                                <span>
+                                  {formatDistance(
+                                    routeInfo[index - 1].distance
+                                  )}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {formatDuration(
+                                    routeInfo[index - 1].duration
+                                  )}
+                                </span>
+                              </div>
+                            )}
 
                             {!waypoint.isEndpoint && (
                               <div className="absolute -left-2 -top-2 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-xs font-semibold shadow-lg">
@@ -235,6 +294,20 @@ export const WaypointList = ({
                 )}
               </Droppable>
             </DragDropContext>
+
+            {/* Total summary block inserted after the list */}
+            {routeInfo.length > 0 && (
+              <div className="mt-4 p-4 border-t border-zinc-800 text-xs text-zinc-400">
+                <div className="flex justify-between">
+                  <span>Total Distance:</span>
+                  <span>{formatDistance(totalDistance)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Duration:</span>
+                  <span>{formatDuration(totalDuration)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
