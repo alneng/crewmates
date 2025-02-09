@@ -180,6 +180,7 @@ export const RoadTripPage = () => {
               roadTripId={id!}
               owner={roadTrip.owner}
               members={roadTrip.members}
+              activeCollaborators={Array.from(collaborators.keys())}
             />
           </div>
         </div>
