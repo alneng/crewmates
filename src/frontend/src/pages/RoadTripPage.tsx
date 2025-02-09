@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Share2, Users } from "lucide-react";
+import { ArrowLeft, Share2, Users, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WaypointList } from "@/components/WaypointList";
@@ -17,6 +17,17 @@ import {
 } from "@/hooks/roadtrip.hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const RoadTripPage = () => {
   const navigate = useNavigate();
@@ -102,24 +113,123 @@ export const RoadTripPage = () => {
           <h1 className="text-xl font-bold">{roadTrip.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowInvite(!showInvite)}
-            className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Invite
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShareSession}
-            className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Link
-          </Button>
+          {/* Invite Dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                className="bg-zinc-800 hover:bg-zinc-700 focus:outline-none"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Invite
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md border-zinc-800">
+              <DialogHeader>
+                <DialogTitle>Invite a Member</DialogTitle>
+                <DialogDescription className="text-zinc-400">
+                  Invite someone to collaborate on this road trip.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleInviteMember}>
+                <div className="flex items-center space-x-2">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="email" className="sr-only">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="Enter email to invite"
+                      className="bg-zinc-900 border-zinc-700"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                    disabled={inviteMember.isPending}
+                  >
+                    {inviteMember.isPending ? "Inviting..." : "Invite"}
+                  </Button>
+                </div>
+                {inviteMember.error && (
+                  <p className="mt-2 text-red-400 text-sm">
+                    {inviteMember.error.message || "Failed to invite member"}
+                  </p>
+                )}
+              </form>
+              <DialogFooter className="sm:justify-start">
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="bg-zinc-300 hover:bg-zinc-700 focus:outline-none"
+                  >
+                    Close
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Share Dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                className="bg-zinc-800 hover:bg-zinc-700 focus:outline-none"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 text-zinc-200 sm:max-w-md border-zinc-800">
+              <DialogHeader>
+                <DialogTitle>Share link</DialogTitle>
+                <DialogDescription className="text-zinc-400">
+                  Only invited users with this link can join this road trip
+                  planning session.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">
+                    Link
+                  </Label>
+                  <Input
+                    id="link"
+                    defaultValue={`${window.location.origin}/roadtrips/${id}?session=${sessionId}`}
+                    readOnly
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="px-3 bg-zinc-800 hover:bg-zinc-700 focus:outline-none"
+                  onClick={handleShareSession}
+                >
+                  <span className="sr-only">Copy</span>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <DialogFooter className="sm:justify-start">
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="bg-zinc-300 hover:bg-zinc-700 focus:outline-none"
+                  >
+                    Close
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Active collaborators */}
           <div className="flex -space-x-2">
             {Array.from(collaborators.values()).map((collaborator) => (
@@ -133,33 +243,6 @@ export const RoadTripPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Invite Form */}
-      {showInvite && (
-        <div className="p-4 border-b border-zinc-800 bg-zinc-800">
-          <form onSubmit={handleInviteMember} className="flex gap-2 max-w-md">
-            <Input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Enter email to invite"
-              className="bg-zinc-900 border-zinc-700"
-            />
-            <Button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={inviteMember.isPending}
-            >
-              {inviteMember.isPending ? "Inviting..." : "Invite"}
-            </Button>
-          </form>
-          {inviteMember.error && (
-            <p className="mt-2 text-red-400 text-sm">
-              {inviteMember.error.message || "Failed to invite member"}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Main content */}
       <div className="flex-1 flex">
