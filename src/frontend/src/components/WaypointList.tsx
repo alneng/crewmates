@@ -193,10 +193,10 @@ export const WaypointList = ({
             <Button
               variant="ghost"
               onClick={handleAddStop}
-              className="w-full mb-3 border border-dashed border-zinc-800 hover:bg-zinc-800/50 text-zinc-400 h-10 group transition-all duration-200 hover:border-indigo-500/50"
+              className="w-full mb-3 border border-dashed border-zinc-800 hover:bg-zinc-800/50 text-zinc-400 h-10 group transition-colors duration-200 hover:border-indigo-500/50"
             >
-              <Plus className="h-4 w-4 mr-2 group-hover:text-indigo-400" />
-              <span className="group-hover:text-zinc-300">
+              <Plus className="h-4 w-4 mr-2 group-hover:text-indigo-400 transition-colors" />
+              <span className="group-hover:text-zinc-300 transition-colors">
                 Add another stop
               </span>
             </Button>
