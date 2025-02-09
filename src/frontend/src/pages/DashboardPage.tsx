@@ -36,9 +36,9 @@ const DashboardPage: React.FC = () => {
   // Handle sorting option change
   const handleSortOption = (option: string) => {
     setSelectedOption(option);
-    if (option === "Sort by Oldest") {
+    if (option === "Sort by oldest") {
       sortByOldest(roadTrips);
-    } else if (option === "Sort by Recent") {
+    } else if (option === "Sort by recent") {
       sortByRecent(roadTrips);
     }
     setIsOpen(false); // Close dropdown after selection
@@ -107,8 +107,7 @@ const DashboardPage: React.FC = () => {
             </Button>
           </Link>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-5">
           {roadTrips.length > 0 ? (
             <div className="relative inline-block text-left">
               {/* Button to toggle dropdown */}
@@ -119,34 +118,37 @@ const DashboardPage: React.FC = () => {
               >
                 {selectedOption}
               </button>
-
               {/* Dropdown menu */}
-              {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                  <ul className="py-1">
-                    <li>
-                      <button
-                        onClick={() => handleSortOption("Sort by Oldest")}
-                        className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
-                      >
-                        Sort by Oldest
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => handleSortOption("Sort by Recent")}
-                        className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
-                      >
-                        Sort by Recent
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              )}
+              <div className="absolute">
+                {isOpen && (
+                  <div className="right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                    <ul className="py-1">
+                      <li>
+                        <button
+                          onClick={() => handleSortOption("Sort by oldest")}
+                          className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
+                        >
+                          Oldest
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          onClick={() => handleSortOption("Sort by recent")}
+                          className="block w-full px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white"
+                        >
+                          Recent
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             ""
           )}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {roadTrips.length > 0 ? (
             roadTrips.map((trip) => (
               <Card key={trip.id} className="p-4 bg-zinc-800 border-zinc-700">
