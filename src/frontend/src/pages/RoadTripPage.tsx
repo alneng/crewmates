@@ -84,7 +84,7 @@ export const RoadTripPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-900 text-zinc-200">
+    <div className="h-screen grow-0 flex flex-col bg-zinc-900 text-zinc-200">
       {/* Header */}
       <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -170,7 +170,7 @@ export const RoadTripPage = () => {
       <div className="flex-1 flex">
         {/* Sidebar */}
         <div className="w-80 border-r border-zinc-800 bg-zinc-900 flex flex-col">
-          <div className="p-4 flex-1">
+          <div className="flex-1 flex flex-col">
             <WaypointList
               sessionId={sessionId!}
               waypoints={roadTrip.waypoints}
@@ -180,7 +180,7 @@ export const RoadTripPage = () => {
               socket={socket}
             />
           </div>
-          <div className="p-4 border-t border-zinc-800">
+          <div className="flex-shrink-0">
             <MemberList
               roadTripId={id!}
               owner={roadTrip.owner}
@@ -190,7 +190,7 @@ export const RoadTripPage = () => {
         </div>
 
         {/* Map */}
-        <div className="flex-1 bg-zinc-900">
+        <div className="flex-1">
           <CollaborativeMap
             sessionId={sessionId!}
             waypoints={roadTrip.waypoints}

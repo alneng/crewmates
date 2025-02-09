@@ -175,7 +175,7 @@ export const WaypointList = ({
   };
 
   return (
-    <Card className="h-[calc(100vh-4rem)] flex flex-col bg-gradient-to-b from-zinc-900 to-zinc-950 border-zinc-800">
+    <Card className="h-80 sticky top-0 flex-grow flex flex-col bg-zinc-900 border-zinc-800 overflow-hidden">
       <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 flex-shrink-0">
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-indigo-500" />
@@ -279,7 +279,7 @@ export const WaypointList = ({
                             </div>
 
                             {!waypoint.isEndpoint && (
-                              <div className="absolute -left-2 -top-2 w-6 h-6 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-semibold shadow-lg">
+                              <div className="absolute -left-2 -top-2 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-xs font-semibold shadow-lg">
                                 {index}
                               </div>
                             )}
