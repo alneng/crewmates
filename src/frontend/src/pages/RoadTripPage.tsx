@@ -190,8 +190,8 @@ export const RoadTripPage = () => {
               <DialogHeader>
                 <DialogTitle>Share link</DialogTitle>
                 <DialogDescription className="text-zinc-400">
-                  Anyone with this link can join this road trip planning
-                  session.
+                  Only invited users with this link can join this road trip
+                  planning session.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex items-center space-x-2">
