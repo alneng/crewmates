@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CarIcon, PlusCircle, Share2, SunIcon } from "lucide-react";
+import { CarIcon, PlusCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
 import { transformDate } from "@/lib/utils";
 
@@ -135,7 +135,6 @@ const DashboardPage: React.FC = () => {
               <div>
                 <div className="flex justify-between">
                   No road trips have been created.{" "}
-                  <SunIcon className="text-yellow-200 size-10" />
                 </div>
                 <div>
                   Get started on your journey by creating one{" "}
