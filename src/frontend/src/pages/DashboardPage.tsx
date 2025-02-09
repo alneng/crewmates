@@ -95,7 +95,7 @@ const DashboardPage: React.FC = () => {
           </Link>
         </div>
         <div className="mb-5">
-          {roadTrips.length > 0 ? (
+          {roadTrips && (
             <div>
               {
                 <DropdownMenu>
@@ -119,8 +119,6 @@ const DashboardPage: React.FC = () => {
                 </DropdownMenu>
               }
             </div>
-          ) : (
-            ""
           )}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
