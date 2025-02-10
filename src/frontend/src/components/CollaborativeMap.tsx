@@ -149,7 +149,7 @@ export const CollaborativeMap: React.FC<Props> = ({
     mapboxgl.accessToken = MAPBOX_TOKEN;
     mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/standard",
       center: [-71.0589, 42.3601], // Boston center
       zoom: 12,
     });
